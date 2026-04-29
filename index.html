@@ -6,7 +6,7 @@
     <title>Dashboard - Hana Memoria</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Satisfy&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,600&display=swap" rel="stylesheet">
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -59,27 +59,22 @@
         .mindar-box { margin-top: 20px; background: #f0fdf4; padding: 15px; border-radius: 12px; border: 1px dashed #4ade80; }
         .btn-simpan-mindar { background: #22c55e; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; margin-top: 10px; font-weight: 600; cursor: pointer; }
 
-        /* PENGATURAN CETAK GRID ANTI BERTUMPUK (DIPERTAHANKAN 100%) */
-        .grid-cetak {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15mm 10mm;
-            width: 100%;
-        }
-        .item-cetak {
-            break-inside: avoid;
-            page-break-inside: avoid;
-        }
-
+        /* PENGATURAN CETAK (LAYOUT PALING SOLID) */
         @media print {
             body { margin: 0; padding: 0; background: white !important; }
             #app-container, .modal-overlay, .no-print { display: none !important; }
-            #area-cetak { display: block !important; width: 100% !important; margin: 0 auto !important; padding: 0 !important; max-width: 210mm !important; }
+            #area-cetak { display: block !important; width: 100% !important; margin: 0 auto !important; padding: 5mm !important; max-width: 210mm !important; }
             
-            .grid-cetak {
-                display: grid !important;
-                grid-template-columns: repeat(3, 1fr) !important;
-                gap: 15mm 10mm !important;
+            .flex-cetak {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                justify-content: flex-start !important;
+                gap: 20px 2% !important;
+            }
+            .item-cetak {
+                width: 32% !important; /* 3 Kolom */
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
             }
             @page { size: A4 portrait; margin: 10mm; }
         }
@@ -161,42 +156,22 @@
         const SUPABASE_URL = 'https://ujnuvlrdxzqtfppbhioo.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqbnV2bHJkeHpxdGZwcGJoaW9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNjU2OTYsImV4cCI6MjA5MDY0MTY5Nn0.slqPc8v7QZXxHzvMkOlXWAAYebX-sqUIiKZvA9DJkl0';
 
-        let grafikVisual = null;
         let dataPesananGlobal = [];
         let idPesananAktif = "";
         let linkFotoAktif = "";
-        let totalPesananLama = 0;
 
-        // ==========================================
-        // PERBAIKAN: IZIN NOTIFIKASI AMAN (ANTI 0/BLANK)
-        // ==========================================
-        try {
+        if (window.location.protocol !== "file:") {
             if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
-                Notification.requestPermission().catch(e => console.log("Notif ditolak", e));
+                Notification.requestPermission();
             }
-        } catch(e) {
-            console.log("Aman dibuka secara lokal.");
         }
 
         async function ambilDataPesanan() {
             try {
                 const respon = await fetch(`${SUPABASE_URL}/rest/v1/Pesanan?order=created_at.desc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } });
-                const data = await respon.json();
-                
-                if (totalPesananLama > 0 && data.length > totalPesananLama) kirimNotifikasi(data[0]);
-                totalPesananLama = data.length;
-                dataPesananGlobal = data; 
+                dataPesananGlobal = await respon.json();
                 renderTabel(); 
             } catch (error) { console.error("Gagal load data"); }
-        }
-
-        function kirimNotifikasi(pesananBaru) {
-            try {
-                if ("Notification" in window && Notification.permission === "granted") {
-                    new Notification("Pesanan Baru Masuk! ✨", { body: `Pelanggan: ${pesananBaru.nama_pelanggan}\nProduk: ${pesananBaru.jenis_pesanan}`, icon: 'https://img.icons8.com/color/96/unpacking.png' });
-                    new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(e => console.log(e));
-                }
-            } catch(e) {}
         }
 
         async function perbaruiStatus(id, statusBaru) {
@@ -287,15 +262,14 @@
             document.getElementById('count-proses').innerText = jmlProses;
             document.getElementById('count-mindar').innerText = jmlBelumMindAR;
             document.getElementById('count-selesai').innerText = jmlSelesai;
-            buatDiagram(jmlPending, jmlPaid, jmlProses, jmlSelesai, jmlBelumMindAR);
         }
 
         // ==========================================
-        // KODE CETAK (DIPERTAHANKAN 100% SESUAI YANG KAMU SUKA)
+        // KODE CETAK: DESAIN ELEGAN & 100% KOKOH
         // ==========================================
         async function cetakMassal() {
             const checkboxes = document.querySelectorAll('.check-pesanan:checked');
-            if (checkboxes.length === 0) return alert("⚠️ Silakan centang minimal satu pesanan di tabel terlebih dahulu!");
+            if (checkboxes.length === 0) return alert("⚠️ Silakan centang pesanan di tabel terlebih dahulu!");
 
             const btnCetak = document.getElementById('btn-cetak-massal');
             const teksLama = btnCetak.innerHTML;
@@ -322,9 +296,10 @@
             printArea.appendChild(btnKembali);
 
             const gridContainer = document.createElement('div');
-            gridContainer.className = 'grid-cetak';
+            gridContainer.className = 'flex-cetak';
             printArea.appendChild(gridContainer);
 
+            // LOGO AMAN (Agar tidak menjadi icon pecah jika error)
             const logoUrl = "https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png";
 
             for (const cb of checkboxes) {
@@ -338,68 +313,72 @@
                 const item = document.createElement('div');
                 item.className = 'item-cetak';
 
+                // STRUKTUR HTML PALING AMAN (TANPA POSITION ABSOLUTE UNTUK TEKS)
                 item.innerHTML = `
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <img class="ganci-img" src="${p.link_foto}" style="width: 100%; height: auto; border-radius: 8px; border: 1px dashed #ccc; display: block;" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x400?text=Foto+Gagal';">
+                    
+                    <div class="ganci-qr" style="width: 100%; border: 2px solid #2d3436; border-radius: 12px; margin-top: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box; background: white;">
                         
-                        <img src="${p.link_foto}" class="foto-ganci" style="width: 100%; height: auto; border-radius: 8px; border: 1px dashed #ccc; object-fit: contain; box-sizing: border-box;">
-                        
-                        <div class="qr-wrapper" style="width: 100%; display: flex; flex-direction: column;">
+                        <div style="position: relative; width: 90%; aspect-ratio: 1/1; display: flex; justify-content: center; align-items: center;">
+                            <img src="${qrUrl}" style="width: 100%; height: 100%; object-fit: contain; display: block;" onerror="this.style.display='none'">
                             
-                            <div class="qr-ganci" style="width: 100%; border: 2px solid #2d3436; border-radius: 12px; position: relative; padding: 15px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; align-items: center; background: white;">
-                                
-                                <div style="position: absolute; bottom: -12px; right: 10px; background: white; padding: 0 5px; z-index: 2;">
-                                    <span style="font-family: 'Satisfy', cursive; font-size: 18px; font-weight: bold; color: #2d3436;">Scan me!</span>
-                                </div>
-
-                                <div style="position: absolute; top: -5px; left: 15px; width: 30px; height: 10px; background: white; z-index: 2;"></div>
-
-                                <div style="position: relative; width: 100%; display: flex; justify-content: center; align-items: center;">
-                                    <img src="${qrUrl}" style="width: 100%; max-width: 100%; object-fit: contain; display: block;">
-                                    
-                                    <div style="position: absolute; width: 25%; aspect-ratio: 1/1; background: white; border-radius: 6px; display: flex; justify-content: center; align-items: center; padding: 2px; z-index: 3;">
-                                        <img src="${logoUrl}" style="width: 100%; height: auto;">
-                                    </div>
-                                </div>
+                            <div style="position: absolute; width: 25%; aspect-ratio: 1/1; background: white; border-radius: 4px; padding: 2px; display: flex; justify-content: center; align-items: center;">
+                                <img src="${logoUrl}" style="width: 100%; height: auto;" onerror="this.style.display='none'">
                             </div>
-
-                            <div style="text-align: center; margin-top: 15px; padding-bottom: 5px;">
-                                <p style="font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; color: #2d3436; margin: 0;">ID: ${id}</p>
-                                <p style="font-family: 'Inter', sans-serif; font-size: 9px; color: #636e72; margin: 2px 0 0 0;">✨ Hana Memoria ✨</p>
-                            </div>
-                            
                         </div>
+
+                        <div style="font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-weight: bold; font-size: 18px; color: #2d3436; margin-top: 10px; letter-spacing: 0.5px;">
+                            Scan me!
+                        </div>
+
+                    </div>
+
+                    <div style="text-align: center; margin-top: 6px;">
+                        <p style="font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #2d3436; margin: 0;">ID: ${id}</p>
+                        <p style="font-family: 'Inter', sans-serif; font-size: 10px; color: #636e72; margin: 2px 0 0 0;">✨ Hana Memoria ✨</p>
                     </div>
                 `;
                 gridContainer.appendChild(item);
             }
 
-            const images = Array.from(gridContainer.querySelectorAll('.foto-ganci'));
-            await Promise.all(images.map(img => new Promise(resolve => {
-                if (img.complete) {
-                    samakanTinggiQR(img);
-                    resolve();
-                } else {
-                    img.onload = () => { samakanTinggiQR(img); resolve(); };
-                    img.onerror = resolve; 
-                }
-            })));
-
-            function samakanTinggiQR(imgElem) {
-                const wrapper = imgElem.nextElementSibling;
-                if (wrapper) {
-                    const qrBox = wrapper.querySelector('.qr-ganci');
-                    if (qrBox && imgElem.offsetHeight > 10) {
-                        qrBox.style.height = imgElem.offsetHeight + 'px';
+            // FUNGSI PENGUKUR TINGGI YANG LEBIH SABAR (Anti Kotak Kecil)
+            const applyHeights = () => {
+                const items = document.querySelectorAll('.item-cetak');
+                items.forEach(item => {
+                    const img = item.querySelector('.ganci-img');
+                    const qrBox = item.querySelector('.ganci-qr');
+                    if (img && qrBox && img.offsetHeight > 50) {
+                        qrBox.style.height = img.offsetHeight + 'px';
                     }
+                });
+            };
+
+            // Tunggu semua foto benar-benar masuk sebelum mengukur
+            const imgElements = Array.from(gridContainer.querySelectorAll('.ganci-img'));
+            let loadedCount = 0;
+            const checkAllLoaded = () => {
+                loadedCount++;
+                if (loadedCount === imgElements.length) {
+                    applyHeights();
+                    btnCetak.innerHTML = teksLama;
+                    btnCetak.disabled = false;
+                    setTimeout(() => window.print(), 500); // Buka layar print
                 }
-            }
+            };
 
-            btnCetak.innerHTML = teksLama;
-            btnCetak.disabled = false;
-
-            setTimeout(() => {
+            if (imgElements.length === 0) {
+                btnCetak.innerHTML = teksLama;
+                btnCetak.disabled = false;
                 window.print();
-            }, 1000);
+            } else {
+                imgElements.forEach(img => {
+                    if (img.complete) checkAllLoaded();
+                    else {
+                        img.onload = checkAllLoaded;
+                        img.onerror = checkAllLoaded; // Walau gagal, tetap lanjut
+                    }
+                });
+            }
         }
 
         function getWaLink(pesanan, type) {
