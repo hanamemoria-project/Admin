@@ -183,7 +183,6 @@
                 renderTabel(); 
             } catch (error) { 
                 console.error("Gagal load data:", error); 
-                // Tidak mengganggu tampilan jika error jaringan sesaat
             }
         }
 
@@ -286,7 +285,7 @@
         }
 
         // ==========================================
-        // KODE CETAK (ID DI DALAM KOTAK BAWAH QR)
+        // KODE CETAK (DENGAN JARAK AMAN & STABIL)
         // ==========================================
         async function cetakMassal() {
             const checkboxes = document.querySelectorAll('.check-pesanan:checked');
@@ -343,13 +342,13 @@
                 const item = document.createElement('div');
                 item.className = 'item-cetak';
 
-                // DESAIN BARU: ID dimasukkan ke dalam kotak berserta QR code
+                // DESAIN FINAL: Penambahan margin-top pada kotak QR untuk jarak aman
                 item.innerHTML = `
-                    <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
+                    <div style="display: flex; flex-direction: column; align-items: center;">
 
                         <img src="${p.link_foto}" style="width: 100%; height: auto; border-radius: 8px; border: 1px dashed #ccc; display: block; box-sizing: border-box;">
                         
-                        <div style="position: relative; width: 100%; border: 2px solid #b88663; border-radius: 12px; background-color: #fdfaf4; box-sizing: border-box;">
+                        <div style="position: relative; width: 100%; border: 2px solid #b88663; border-radius: 12px; background-color: #fdfaf4; box-sizing: border-box; margin-top: 25px;">
 
                             <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #fdfaf4; padding: 0 10px; z-index: 2;">
                                 <span style="font-family: 'Inter', sans-serif; font-weight: 800; font-size: 16px; color: #8a6a53; letter-spacing: 0.5px;">SCAN ME</span>
