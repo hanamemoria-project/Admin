@@ -58,32 +58,27 @@
         .mindar-box { margin-top: 20px; background: #f0fdf4; padding: 15px; border-radius: 12px; border: 1px dashed #4ade80; }
         .btn-simpan-mindar { background: #22c55e; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; margin-top: 10px; font-weight: 600; cursor: pointer; }
 
-        /* PENGATURAN CETAK (ANTI TUMPUK & STABIL DI ANDROID) */
+        /* PENGATURAN CETAK GRID (PALING STABIL UNTUK ANDROID) */
+        .grid-cetak {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15mm 10mm;
+            width: 100%;
+        }
+        .item-cetak {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
         @media print {
             body { margin: 0; padding: 0; background: white !important; }
             #app-container, .modal-overlay, .no-print { display: none !important; }
-            #area-cetak { 
-                display: block !important; 
-                width: 100% !important; 
-                max-width: 210mm !important; 
-                margin: 0 auto !important; 
-                padding: 5mm !important; 
-            }
+            #area-cetak { display: block !important; width: 100% !important; margin: 0 auto !important; padding: 0 !important; max-width: 210mm !important; }
+            
             .grid-cetak {
-                display: block !important;
-                width: 100% !important;
-            }
-            .grid-cetak::after {
-                content: "";
-                clear: both;
-                display: table;
-            }
-            .item-cetak {
-                float: left !important;
-                width: 31% !important; /* 3 Kolom */
-                margin: 1% !important;
-                break-inside: avoid !important;
-                page-break-inside: avoid !important;
+                display: grid !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 15mm 10mm !important;
             }
             @page { size: A4 portrait; margin: 10mm; }
         }
@@ -165,39 +160,31 @@
         const SUPABASE_URL = 'https://ujnuvlrdxzqtfppbhioo.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqbnV2bHJkeHpxdGZwcGJoaW9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNjU2OTYsImV4cCI6MjA5MDY0MTY5Nn0.slqPc8v7QZXxHzvMkOlXWAAYebX-sqUIiKZvA9DJkl0';
 
-        let grafikVisual = null;
+        let grafikVisual = null; 
         let dataPesananGlobal = [];
         let idPesananAktif = "";
         let linkFotoAktif = "";
-        let totalPesananLama = 0;
 
-        // Izin Notifikasi diamankan agar tidak memblokir script
-        function cekIzinNotifikasi() {
-            if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
-                try { Notification.requestPermission(); } catch(e) {}
-            }
-        }
+        // Fungsi Utama Saat Halaman Dimuat
+        document.addEventListener("DOMContentLoaded", () => {
+            ambilDataPesanan();
+            setInterval(ambilDataPesanan, 60000);
+        });
 
         async function ambilDataPesanan() {
             try {
-                const respon = await fetch(`${SUPABASE_URL}/rest/v1/Pesanan?order=created_at.desc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } });
-                const data = await respon.json();
+                const respon = await fetch(`${SUPABASE_URL}/rest/v1/Pesanan?order=created_at.desc`, { 
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } 
+                });
                 
-                if (totalPesananLama > 0 && data.length > totalPesananLama) kirimNotifikasi(data[0]);
-                totalPesananLama = data.length;
-                dataPesananGlobal = data; 
+                if (!respon.ok) throw new Error("Gagal terhubung ke database");
+                
+                dataPesananGlobal = await respon.json();
                 renderTabel(); 
-                cekIzinNotifikasi(); 
-            } catch (error) { console.error("Gagal load data"); }
-        }
-
-        function kirimNotifikasi(pesananBaru) {
-            try {
-                if ("Notification" in window && Notification.permission === "granted") {
-                    new Notification("Pesanan Baru Masuk! ✨", { body: `Pelanggan: ${pesananBaru.nama_pelanggan}\nProduk: ${pesananBaru.jenis_pesanan}`, icon: 'https://img.icons8.com/color/96/unpacking.png' });
-                    new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play();
-                }
-            } catch (error) {}
+            } catch (error) { 
+                console.error("Gagal load data:", error); 
+                // Tidak mengganggu tampilan jika error jaringan sesaat
+            }
         }
 
         async function perbaruiStatus(id, statusBaru) {
@@ -215,85 +202,92 @@
         }
 
         function renderTabel() {
-            const wadahTabel = document.getElementById('tabel-pesanan');
-            wadahTabel.innerHTML = '';
-            const filterTerpilih = document.getElementById('filter-produk').value;
-            let jmlPending = 0, jmlPaid = 0, jmlProses = 0, jmlSelesai = 0, jmlBelumMindAR = 0;
-            const skrg = new Date();
-
-            dataPesananGlobal.forEach(pesanan => {
-                let statusAsli = pesanan.status_pesanan || 'pending_payment';
-                if (statusAsli === 'Pending') statusAsli = 'pending_payment';
-                if (statusAsli === 'Proses') statusAsli = 'processing';
-                if (statusAsli === 'Selesai') statusAsli = 'completed';
-
-                let belumMindAR = (!pesanan.link_target || pesanan.link_target.trim() === "");
-
-                if (statusAsli === 'pending_payment') jmlPending++;
-                else if (statusAsli === 'paid') jmlPaid++;
-                else if (statusAsli === 'processing') jmlProses++;
-                else if (statusAsli === 'completed') jmlSelesai++;
-                if (belumMindAR) jmlBelumMindAR++;
-
-                if (filterTerpilih !== "Semua" && pesanan.jenis_pesanan !== filterTerpilih) return;
-
-                const tglDibuat = new Date(pesanan.created_at);
-                const tglDeadline = new Date(tglDibuat);
-                tglDeadline.setDate(tglDeadline.getDate() + 3);
-                const sisaHari = Math.ceil((tglDeadline - skrg) / (1000 * 60 * 60 * 24));
+            try {
+                if (!Array.isArray(dataPesananGlobal)) return;
                 
-                let teksDeadline = "", kelasDeadline = "deadline-normal";
-                if (statusAsli === 'completed') teksDeadline = "Selesai ✨";
-                else {
-                    if (sisaHari < 0) teksDeadline = `TERLAMBAT ${Math.abs(sisaHari)} HARI`;
-                    else if (sisaHari === 0) teksDeadline = "HARI INI!";
-                    else if (sisaHari === 1) teksDeadline = "BESOK!";
-                    else teksDeadline = `${sisaHari} Hari Lagi`;
-                    if (sisaHari <= 1) kelasDeadline = "deadline-warning";
-                }
+                const wadahTabel = document.getElementById('tabel-pesanan');
+                wadahTabel.innerHTML = '';
+                const filterTerpilih = document.getElementById('filter-produk').value;
+                let jmlPending = 0, jmlPaid = 0, jmlProses = 0, jmlSelesai = 0, jmlBelumMindAR = 0;
+                const skrg = new Date();
 
-                let warnaBadge = 'bg-pending', labelWA = '💬 Tagihan';
-                if (statusAsli === 'paid') { warnaBadge = 'bg-paid'; labelWA = '💬 Resi Lunas'; }
-                if (statusAsli === 'processing') { warnaBadge = 'bg-proses'; labelWA = '💬 Update'; }
-                if (statusAsli === 'completed') { warnaBadge = 'bg-selesai'; labelWA = '💬 Selesai'; }
+                dataPesananGlobal.forEach(pesanan => {
+                    let statusAsli = pesanan.status_pesanan || 'pending_payment';
+                    if (statusAsli === 'Pending') statusAsli = 'pending_payment';
+                    if (statusAsli === 'Proses') statusAsli = 'processing';
+                    if (statusAsli === 'Selesai') statusAsli = 'completed';
 
-                const baris = document.createElement('tr');
-                baris.innerHTML = `
-                    <td><input type="checkbox" class="check-pesanan" value="${pesanan.id_pesanan}"></td>
-                    <td><strong>${pesanan.id_pesanan}</strong></td>
-                    <td>${pesanan.nama_pelanggan || '-'}</td>
-                    <td>${pesanan.jenis_pesanan || '-'}</td>
-                    <td><span class="${kelasDeadline}">${teksDeadline}</span></td>
-                    <td>
-                        <select class="select-status ${warnaBadge}" onchange="perbaruiStatus('${pesanan.id_pesanan}', this.value)">
-                            <option value="pending_payment" ${statusAsli === 'pending_payment' ? 'selected' : ''}>Pending Payment</option>
-                            <option value="paid" ${statusAsli === 'paid' ? 'selected' : ''}>Paid</option>
-                            <option value="processing" ${statusAsli === 'processing' ? 'selected' : ''}>Processing</option>
-                            <option value="completed" ${statusAsli === 'completed' ? 'selected' : ''}>Completed</option>
-                        </select>
-                        ${belumMindAR ? '<br><span class="badge-mindar">⚠️ Belum MindAR</span>' : ''}
-                    </td>
-                    <td>
-                        <div class="aksi-container">
-                            <button class="btn-detail" onclick="bukaDetail('${pesanan.id_pesanan}')">Detail</button>
-                            <a href="${getWaLink(pesanan, statusAsli)}" target="_blank" class="btn-wa">${labelWA}</a>
-                        </div>
-                    </td>
-                `;
-                wadahTabel.appendChild(baris);
-            });
+                    let belumMindAR = (!pesanan.link_target || pesanan.link_target.trim() === "");
 
-            document.getElementById('count-pending').innerText = jmlPending;
-            document.getElementById('count-paid').innerText = jmlPaid;
-            document.getElementById('count-proses').innerText = jmlProses;
-            document.getElementById('count-mindar').innerText = jmlBelumMindAR;
-            document.getElementById('count-selesai').innerText = jmlSelesai;
-            buatDiagram(jmlPending, jmlPaid, jmlProses, jmlSelesai, jmlBelumMindAR);
+                    if (statusAsli === 'pending_payment') jmlPending++;
+                    else if (statusAsli === 'paid') jmlPaid++;
+                    else if (statusAsli === 'processing') jmlProses++;
+                    else if (statusAsli === 'completed') jmlSelesai++;
+                    if (belumMindAR) jmlBelumMindAR++;
+
+                    if (filterTerpilih !== "Semua" && pesanan.jenis_pesanan !== filterTerpilih) return;
+
+                    const tglDibuat = new Date(pesanan.created_at);
+                    const tglDeadline = new Date(tglDibuat);
+                    tglDeadline.setDate(tglDeadline.getDate() + 3);
+                    const sisaHari = Math.ceil((tglDeadline - skrg) / (1000 * 60 * 60 * 24));
+                    
+                    let teksDeadline = "", kelasDeadline = "deadline-normal";
+                    if (statusAsli === 'completed') teksDeadline = "Selesai ✨";
+                    else {
+                        if (sisaHari < 0) teksDeadline = `TERLAMBAT ${Math.abs(sisaHari)} HARI`;
+                        else if (sisaHari === 0) teksDeadline = "HARI INI!";
+                        else if (sisaHari === 1) teksDeadline = "BESOK!";
+                        else teksDeadline = `${sisaHari} Hari Lagi`;
+                        if (sisaHari <= 1) kelasDeadline = "deadline-warning";
+                    }
+
+                    let warnaBadge = 'bg-pending', labelWA = '💬 Tagihan';
+                    if (statusAsli === 'paid') { warnaBadge = 'bg-paid'; labelWA = '💬 Resi Lunas'; }
+                    if (statusAsli === 'processing') { warnaBadge = 'bg-proses'; labelWA = '💬 Update'; }
+                    if (statusAsli === 'completed') { warnaBadge = 'bg-selesai'; labelWA = '💬 Selesai'; }
+
+                    const baris = document.createElement('tr');
+                    baris.innerHTML = `
+                        <td><input type="checkbox" class="check-pesanan" value="${pesanan.id_pesanan}"></td>
+                        <td><strong>${pesanan.id_pesanan}</strong></td>
+                        <td>${pesanan.nama_pelanggan || '-'}</td>
+                        <td>${pesanan.jenis_pesanan || '-'}</td>
+                        <td><span class="${kelasDeadline}">${teksDeadline}</span></td>
+                        <td>
+                            <select class="select-status ${warnaBadge}" onchange="perbaruiStatus('${pesanan.id_pesanan}', this.value)">
+                                <option value="pending_payment" ${statusAsli === 'pending_payment' ? 'selected' : ''}>Pending Payment</option>
+                                <option value="paid" ${statusAsli === 'paid' ? 'selected' : ''}>Paid</option>
+                                <option value="processing" ${statusAsli === 'processing' ? 'selected' : ''}>Processing</option>
+                                <option value="completed" ${statusAsli === 'completed' ? 'selected' : ''}>Completed</option>
+                            </select>
+                            ${belumMindAR ? '<br><span class="badge-mindar">⚠️ Belum MindAR</span>' : ''}
+                        </td>
+                        <td>
+                            <div class="aksi-container">
+                                <button class="btn-detail" onclick="bukaDetail('${pesanan.id_pesanan}')">Detail</button>
+                                <a href="${getWaLink(pesanan, statusAsli)}" target="_blank" class="btn-wa">${labelWA}</a>
+                            </div>
+                        </td>
+                    `;
+                    wadahTabel.appendChild(baris);
+                });
+
+                document.getElementById('count-pending').innerText = jmlPending;
+                document.getElementById('count-paid').innerText = jmlPaid;
+                document.getElementById('count-proses').innerText = jmlProses;
+                document.getElementById('count-mindar').innerText = jmlBelumMindAR;
+                document.getElementById('count-selesai').innerText = jmlSelesai;
+                
+                buatDiagram(jmlPending, jmlPaid, jmlProses, jmlSelesai, jmlBelumMindAR);
+            } catch (err) {
+                console.error("Gagal me-render tabel:", err);
+            }
         }
 
-        // ========================================================
-        // FUNGSI CETAK: DESAIN ID DI DALAM KOTAK (PERSIS REFERENSI)
-        // ========================================================
+        // ==========================================
+        // KODE CETAK (ID DI DALAM KOTAK BAWAH QR)
+        // ==========================================
         async function cetakMassal() {
             const checkboxes = document.querySelectorAll('.check-pesanan:checked');
             if (checkboxes.length === 0) return alert("⚠️ Silakan centang minimal satu pesanan di tabel terlebih dahulu!");
@@ -313,7 +307,7 @@
                     reader.onloadend = () => resolve(reader.result);
                     reader.readAsDataURL(blobLogo);
                 });
-            } catch(e) { console.log("Info: Memakai logo url standar."); }
+            } catch(e) {}
 
             let printArea = document.getElementById('area-cetak');
             if (!printArea) {
@@ -365,7 +359,7 @@
 
                             <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; z-index: 1;">
                                 
-                                <div style="position: relative; width: 85%; max-width: 160px; aspect-ratio: 1/1; background: white; padding: 5px; border-radius: 8px; box-shadow: inset 0 0 5px rgba(0,0,0,0.05);">
+                                <div style="position: relative; width: 80%; max-width: 150px; aspect-ratio: 1/1; background: white; padding: 5px; border-radius: 8px; box-shadow: inset 0 0 5px rgba(0,0,0,0.05);">
                                     <img src="${qrUrl}" crossorigin="anonymous" style="width: 100%; height: 100%; object-fit: contain; display: block;">
                                     
                                     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 25%; aspect-ratio: 1/1; background: white; border-radius: 4px; display: flex; justify-content: center; align-items: center; padding: 2px;">
@@ -404,9 +398,29 @@
         function getWaLink(pesanan, type) {
             let phone = pesanan.whatsapp || "";
             if (phone.startsWith('0')) phone = '62' + phone.substring(1);
+            let alamat = `${pesanan.alamat_detail || ''}, ${pesanan.kecamatan || ''}, ${pesanan.kota || ''}`;
+            let total = pesanan.total_harga ? pesanan.total_harga.toLocaleString('id-ID') : '0';
             let msg = "";
-            if (type === 'paid') msg = `Halo Kak 😊\nPembayaran untuk pesanan ${pesanan.id_pesanan} sudah kami terima 🤍`;
+            if (type === 'pending_payment') msg = `Halo Kak 😊\nTerima kasih sudah memesan di Hanamemoria 🤍\n\n📦 ID Pesanan: ${pesanan.id_pesanan}\n🧸 Produk: ${pesanan.jenis_pesanan}\n📍 Alamat: ${alamat}\n💰 Total Tagihan: Rp${total}\n\nSilakan lakukan pembayaran ke:\n🏦 BCA: 807683252\na.n Nuzulul Laila Khoirul Alfia\n\nSetelah transfer, mohon kirim bukti pembayaran ya 📩`;
+            else if (type === 'paid') msg = `Halo Kak 😊\nPembayaran untuk pesanan ${pesanan.id_pesanan} sudah kami terima 🤍\nEstimasi pengerjaan: ±3 hari kerja ✨`;
+            else if (type === 'processing') msg = `Halo Kak 😊\nPesanan ${pesanan.id_pesanan} saat ini sedang dalam proses pengerjaan ✨`;
+            else if (type === 'completed') msg = `Halo Kak 😊\nKabar baik! 🎉\nPesanan ${pesanan.id_pesanan} sudah selesai dan siap dikirim 🚚✨`;
             return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+        }
+
+        function buatDiagram(pending, paid, proses, selesai, mindar) {
+            try {
+                if (typeof Chart === 'undefined') return;
+                const ctx = document.getElementById('grafikStatus').getContext('2d');
+                if (grafikVisual !== null) grafikVisual.destroy();
+                grafikVisual = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: { labels: ['Belum Bayar', 'Lunas', 'Diproses', 'Selesai', 'Belum MindAR'], datasets: [{ data: [pending, paid, proses, selesai, mindar], backgroundColor: ['#fcd34d', '#a78bfa', '#7dd3fc', '#86efac', '#fca5a5'], borderWidth: 0 }] },
+                    options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
+                });
+            } catch (e) {
+                console.log("Grafik tertunda");
+            }
         }
 
         function bukaDetail(id) {
@@ -414,10 +428,35 @@
             const p = dataPesananGlobal.find(x => x.id_pesanan === id);
             if (p) {
                 document.getElementById('modal-id').innerText = `Detail: ${id}`;
+                document.getElementById('modal-alamat').innerText = `${p.alamat_detail || ''}, ${p.kecamatan || ''}, ${p.kota || ''}`;
+                document.getElementById('modal-ucapan').innerText = (p.slides && p.slides[1]) ? p.slides[1].b : "-";
+                linkFotoAktif = p.link_foto;
+                document.getElementById('btn-lihat-video').href = p.link_video;
                 document.getElementById('modal-detail').style.display = 'flex';
             }
         }
         function tutupDetail() { document.getElementById('modal-detail').style.display = 'none'; }
+        async function downloadFoto() { window.open(linkFotoAktif, '_blank'); }
+        async function uploadKeR2() {
+            const fileInput = document.getElementById('file-mindar');
+            const file = fileInput.files[0];
+            if (!file) return alert("Pilih file!");
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const base64Data = e.target.result.split(',')[1];
+                const res = await fetch(CLOUDFLARE_WORKER_URL, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'UPLOAD_MINDAR', id_pesanan: idPesananAktif, file_base64: base64Data })
+                });
+                const resData = await res.json();
+                if (resData.success) {
+                    alert("Berhasil!");
+                    perbaruiStatus(idPesananAktif, 'processing');
+                    tutupDetail();
+                }
+            };
+            reader.readAsDataURL(file);
+        }
     </script>
 </body>
 </html>
