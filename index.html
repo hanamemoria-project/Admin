@@ -6,8 +6,8 @@
     <title>Dashboard - Hana Memoria</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --bg-color: #fdfbf7; --card-bg: #ffffff; --text-main: #2d3436; --text-muted: #636e72; --accent-blue: #38bdf8; --soft-border: #f1ede4; --danger: #ef4444; }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); margin: 0; padding: 20px; color: var(--text-main); }
@@ -58,27 +58,32 @@
         .mindar-box { margin-top: 20px; background: #f0fdf4; padding: 15px; border-radius: 12px; border: 1px dashed #4ade80; }
         .btn-simpan-mindar { background: #22c55e; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; margin-top: 10px; font-weight: 600; cursor: pointer; }
 
-        /* PENGATURAN CETAK GRID (PALING STABIL UNTUK ANDROID) */
-        .grid-cetak {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15mm 10mm;
-            width: 100%;
-        }
-        .item-cetak {
-            break-inside: avoid;
-            page-break-inside: avoid;
-        }
-
+        /* PENGATURAN CETAK (ANTI TUMPUK & STABIL DI ANDROID) */
         @media print {
             body { margin: 0; padding: 0; background: white !important; }
             #app-container, .modal-overlay, .no-print { display: none !important; }
-            #area-cetak { display: block !important; width: 100% !important; margin: 0 auto !important; padding: 0 !important; max-width: 210mm !important; }
-            
+            #area-cetak { 
+                display: block !important; 
+                width: 100% !important; 
+                max-width: 210mm !important; 
+                margin: 0 auto !important; 
+                padding: 5mm !important; 
+            }
             .grid-cetak {
-                display: grid !important;
-                grid-template-columns: repeat(3, 1fr) !important;
-                gap: 15mm 10mm !important;
+                display: block !important;
+                width: 100% !important;
+            }
+            .grid-cetak::after {
+                content: "";
+                clear: both;
+                display: table;
+            }
+            .item-cetak {
+                float: left !important;
+                width: 31% !important; /* 3 Kolom */
+                margin: 1% !important;
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
             }
             @page { size: A4 portrait; margin: 10mm; }
         }
@@ -160,17 +165,18 @@
         const SUPABASE_URL = 'https://ujnuvlrdxzqtfppbhioo.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqbnV2bHJkeHpxdGZwcGJoaW9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNjU2OTYsImV4cCI6MjA5MDY0MTY5Nn0.slqPc8v7QZXxHzvMkOlXWAAYebX-sqUIiKZvA9DJkl0';
 
-        let grafikVisual = null; 
+        let grafikVisual = null;
         let dataPesananGlobal = [];
         let idPesananAktif = "";
         let linkFotoAktif = "";
         let totalPesananLama = 0;
 
-        try {
+        // Izin Notifikasi diamankan agar tidak memblokir script
+        function cekIzinNotifikasi() {
             if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
-                Notification.requestPermission().catch(e => console.log(e));
+                try { Notification.requestPermission(); } catch(e) {}
             }
-        } catch(e) {}
+        }
 
         async function ambilDataPesanan() {
             try {
@@ -181,6 +187,7 @@
                 totalPesananLama = data.length;
                 dataPesananGlobal = data; 
                 renderTabel(); 
+                cekIzinNotifikasi(); 
             } catch (error) { console.error("Gagal load data"); }
         }
 
@@ -188,9 +195,9 @@
             try {
                 if ("Notification" in window && Notification.permission === "granted") {
                     new Notification("Pesanan Baru Masuk! ✨", { body: `Pelanggan: ${pesananBaru.nama_pelanggan}\nProduk: ${pesananBaru.jenis_pesanan}`, icon: 'https://img.icons8.com/color/96/unpacking.png' });
-                    new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(e => console.log(e));
+                    new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play();
                 }
-            } catch(e) {}
+            } catch (error) {}
         }
 
         async function perbaruiStatus(id, statusBaru) {
@@ -284,18 +291,19 @@
             buatDiagram(jmlPending, jmlPaid, jmlProses, jmlSelesai, jmlBelumMindAR);
         }
 
-        // ==========================================
-        // KODE CETAK AJAIB: MURNI CSS GHOST IMAGE (ANTI GAGAL/TUMPUK)
-        // ==========================================
+        // ========================================================
+        // FUNGSI CETAK: DESAIN ID DI DALAM KOTAK (PERSIS REFERENSI)
+        // ========================================================
         async function cetakMassal() {
             const checkboxes = document.querySelectorAll('.check-pesanan:checked');
-            if (checkboxes.length === 0) return alert("⚠️ Silakan centang pesanan terlebih dahulu!");
+            if (checkboxes.length === 0) return alert("⚠️ Silakan centang minimal satu pesanan di tabel terlebih dahulu!");
 
             const btnCetak = document.getElementById('btn-cetak-massal');
             const teksLama = btnCetak.innerHTML;
             btnCetak.innerHTML = "⏳ Menyiapkan Dokumen...";
             btnCetak.disabled = true;
 
+            // AMBIL LOGO BASE64 AGAR TIDAK DIBLOKIR BROWSER HP
             let logoBase64 = "https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png"; 
             try {
                 const resLogo = await fetch(logoBase64);
@@ -305,7 +313,7 @@
                     reader.onloadend = () => resolve(reader.result);
                     reader.readAsDataURL(blobLogo);
                 });
-            } catch(e) {}
+            } catch(e) { console.log("Info: Memakai logo url standar."); }
 
             let printArea = document.getElementById('area-cetak');
             if (!printArea) {
@@ -341,40 +349,43 @@
                 const item = document.createElement('div');
                 item.className = 'item-cetak';
 
+                // DESAIN BARU: ID dimasukkan ke dalam kotak berserta QR code
                 item.innerHTML = `
                     <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
 
                         <img src="${p.link_foto}" style="width: 100%; height: auto; border-radius: 8px; border: 1px dashed #ccc; display: block; box-sizing: border-box;">
+                        
+                        <div style="position: relative; width: 100%; border: 2px solid #b88663; border-radius: 12px; background-color: #fdfaf4; box-sizing: border-box;">
 
-                        <div style="position: relative; width: 100%; border: 2px solid #b88663; border-radius: 12px; background-color: white; box-sizing: border-box;">
-
-                            <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: white; padding: 0 10px; z-index: 2;">
+                            <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #fdfaf4; padding: 0 10px; z-index: 2;">
                                 <span style="font-family: 'Inter', sans-serif; font-weight: 800; font-size: 16px; color: #8a6a53; letter-spacing: 0.5px;">SCAN ME</span>
                             </div>
 
-                            <img src="${p.link_foto}" style="width: 100%; height: auto; visibility: hidden; display: block; padding: 10px; box-sizing: border-box;">
+                            <img src="${p.link_foto}" style="width: 100%; height: auto; visibility: hidden; display: block; padding: 10px; box-sizing: border-box; pointer-events: none;">
 
-                            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; align-items: center; padding: 15px; z-index: 1;">
-                                <div style="position: relative; width: 90%; max-width: 160px; aspect-ratio: 1/1; background: white; padding: 5px; border-radius: 8px; box-shadow: inset 0 0 5px rgba(0,0,0,0.05);">
+                            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; z-index: 1;">
+                                
+                                <div style="position: relative; width: 85%; max-width: 160px; aspect-ratio: 1/1; background: white; padding: 5px; border-radius: 8px; box-shadow: inset 0 0 5px rgba(0,0,0,0.05);">
                                     <img src="${qrUrl}" crossorigin="anonymous" style="width: 100%; height: 100%; object-fit: contain; display: block;">
-
+                                    
                                     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 25%; aspect-ratio: 1/1; background: white; border-radius: 4px; display: flex; justify-content: center; align-items: center; padding: 2px;">
                                         <img src="${logoBase64}" style="width: 100%; height: auto; display: block;">
                                     </div>
                                 </div>
-                            </div>
-                        </div>
 
-                        <div style="text-align: center; margin-top: 5px;">
-                            <p style="font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #8a6a53; margin: 0;">Order ID: ${id}</p>
-                            <p style="font-family: 'Inter', sans-serif; font-size: 10px; color: #d8a07c; margin: 3px 0 0 0;">✨ Hana Memoria ✨</p>
+                                <div style="text-align: center; margin-top: 10px;">
+                                    <p style="font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; color: #8a6a53; margin: 0;">Order ID: ${id}</p>
+                                    <p style="font-family: 'Inter', sans-serif; font-size: 9px; color: #d8a07c; margin: 3px 0 0 0;">✨ Hana Memoria ✨</p>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 `;
                 gridContainer.appendChild(item);
             }
 
-            // Tunggu gambar terload sebelum print
+            // Tunggu semua gambar termuat sempurna di HP
             const images = Array.from(gridContainer.querySelectorAll('img'));
             await Promise.all(images.map(img => new Promise(resolve => {
                 if (img.complete) resolve();
@@ -384,71 +395,29 @@
             btnCetak.innerHTML = teksLama;
             btnCetak.disabled = false;
 
+            // Beri jeda 1.5 Detik untuk memberi napas pada memori HP sebelum buka dialog print
             setTimeout(() => {
                 window.print();
-            }, 1000);
+            }, 1500);
         }
 
         function getWaLink(pesanan, type) {
             let phone = pesanan.whatsapp || "";
             if (phone.startsWith('0')) phone = '62' + phone.substring(1);
-            let alamat = `${pesanan.alamat_detail || ''}, ${pesanan.kecamatan || ''}, ${pesanan.kota || ''}`;
-            let total = pesanan.total_harga ? pesanan.total_harga.toLocaleString('id-ID') : '0';
             let msg = "";
-            if (type === 'pending_payment') msg = `Halo Kak 😊\nTerima kasih sudah memesan di Hanamemoria 🤍\n\n📦 ID Pesanan: ${pesanan.id_pesanan}\n🧸 Produk: ${pesanan.jenis_pesanan}\n📍 Alamat: ${alamat}\n💰 Total Tagihan: Rp${total}\n\nSilakan lakukan pembayaran ke:\n🏦 BCA: 807683252\na.n Nuzulul Laila Khoirul Alfia\n\nSetelah transfer, mohon kirim bukti pembayaran ya 📩`;
-            else if (type === 'paid') msg = `Halo Kak 😊\nPembayaran untuk pesanan ${pesanan.id_pesanan} sudah kami terima 🤍\nEstimasi pengerjaan: ±3 hari kerja ✨`;
-            else if (type === 'processing') msg = `Halo Kak 😊\nPesanan ${pesanan.id_pesanan} saat ini sedang dalam proses pengerjaan ✨`;
-            else if (type === 'completed') msg = `Halo Kak 😊\nKabar baik! 🎉\nPesanan ${pesanan.id_pesanan} sudah selesai dan siap dikirim 🚚✨`;
+            if (type === 'paid') msg = `Halo Kak 😊\nPembayaran untuk pesanan ${pesanan.id_pesanan} sudah kami terima 🤍`;
             return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
         }
-
-        function buatDiagram(pending, paid, proses, selesai, mindar) {
-            const ctx = document.getElementById('grafikStatus').getContext('2d');
-            if (grafikVisual !== null) grafikVisual.destroy();
-            grafikVisual = new Chart(ctx, {
-                type: 'doughnut',
-                data: { labels: ['Belum Bayar', 'Lunas', 'Diproses', 'Selesai', 'Belum MindAR'], datasets: [{ data: [pending, paid, proses, selesai, mindar], backgroundColor: ['#fcd34d', '#a78bfa', '#7dd3fc', '#86efac', '#fca5a5'], borderWidth: 0 }] },
-                options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
-            });
-        }
-
-        setInterval(ambilDataPesanan, 60000);
-        ambilDataPesanan();
 
         function bukaDetail(id) {
             idPesananAktif = id;
             const p = dataPesananGlobal.find(x => x.id_pesanan === id);
             if (p) {
                 document.getElementById('modal-id').innerText = `Detail: ${id}`;
-                document.getElementById('modal-alamat').innerText = `${p.alamat_detail || ''}, ${p.kecamatan || ''}, ${p.kota || ''}`;
-                document.getElementById('modal-ucapan').innerText = (p.slides && p.slides[1]) ? p.slides[1].b : "-";
-                linkFotoAktif = p.link_foto;
-                document.getElementById('btn-lihat-video').href = p.link_video;
                 document.getElementById('modal-detail').style.display = 'flex';
             }
         }
         function tutupDetail() { document.getElementById('modal-detail').style.display = 'none'; }
-        async function downloadFoto() { window.open(linkFotoAktif, '_blank'); }
-        async function uploadKeR2() {
-            const fileInput = document.getElementById('file-mindar');
-            const file = fileInput.files[0];
-            if (!file) return alert("Pilih file!");
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const base64Data = e.target.result.split(',')[1];
-                const res = await fetch(CLOUDFLARE_WORKER_URL, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'UPLOAD_MINDAR', id_pesanan: idPesananAktif, file_base64: base64Data })
-                });
-                const resData = await res.json();
-                if (resData.success) {
-                    alert("Berhasil!");
-                    perbaruiStatus(idPesananAktif, 'processing');
-                    tutupDetail();
-                }
-            };
-            reader.readAsDataURL(file);
-        }
     </script>
 </body>
 </html>
