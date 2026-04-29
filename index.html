@@ -285,7 +285,7 @@
         }
 
         // ==========================================
-        // KODE CETAK (DENGAN JARAK AMAN & STABIL)
+        // KODE CETAK (DESAIN FINAL: GARIS LUAR KHUSUS QR)
         // ==========================================
         async function cetakMassal() {
             const checkboxes = document.querySelectorAll('.check-pesanan:checked');
@@ -342,23 +342,24 @@
                 const item = document.createElement('div');
                 item.className = 'item-cetak';
 
-                // DESAIN FINAL: Penambahan margin-top pada kotak QR untuk jarak aman
                 item.innerHTML = `
-                    <div style="display: flex; flex-direction: column; align-items: center;">
+                    <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
 
-                        <img src="${p.link_foto}" style="width: 100%; height: auto; border-radius: 8px; border: 1px dashed #ccc; display: block; box-sizing: border-box;">
+                        <img src="${p.link_foto}" style="width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; display: block; box-sizing: border-box;">
                         
-                        <div style="position: relative; width: 100%; border: 2px solid #b88663; border-radius: 12px; background-color: #fdfaf4; box-sizing: border-box; margin-top: 25px;">
+                        <div style="position: relative; width: 100%; border: 1px dashed #94a3b8; border-radius: 8px; background-color: #fdfaf4; box-sizing: border-box; margin-top: 25px;">
+                            
+                            <div style="position: absolute; top: 14px; left: 8px; right: 8px; bottom: 8px; border: 2px solid #b88663; border-radius: 10px; z-index: 1;"></div>
 
-                            <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #fdfaf4; padding: 0 10px; z-index: 2;">
-                                <span style="font-family: 'Inter', sans-serif; font-weight: 800; font-size: 16px; color: #8a6a53; letter-spacing: 0.5px;">SCAN ME</span>
+                            <div style="position: absolute; top: 4px; left: 50%; transform: translateX(-50%); background: #fdfaf4; padding: 0 10px; z-index: 2;">
+                                <span style="font-family: 'Inter', sans-serif; font-weight: 800; font-size: 15px; color: #8a6a53; letter-spacing: 0.5px;">SCAN ME</span>
                             </div>
 
-                            <img src="${p.link_foto}" style="width: 100%; height: auto; visibility: hidden; display: block; padding: 10px; box-sizing: border-box; pointer-events: none;">
+                            <img src="${p.link_foto}" style="width: 100%; height: auto; visibility: hidden; display: block; pointer-events: none; padding: 2px;">
 
-                            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; z-index: 1;">
+                            <div style="position: absolute; top: 25px; left: 0; right: 0; bottom: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 3;">
                                 
-                                <div style="position: relative; width: 80%; max-width: 150px; aspect-ratio: 1/1; background: white; padding: 5px; border-radius: 8px; box-shadow: inset 0 0 5px rgba(0,0,0,0.05);">
+                                <div style="position: relative; width: 75%; max-width: 140px; aspect-ratio: 1/1; background: white; padding: 5px; border-radius: 8px; box-shadow: inset 0 0 5px rgba(0,0,0,0.05);">
                                     <img src="${qrUrl}" crossorigin="anonymous" style="width: 100%; height: 100%; object-fit: contain; display: block;">
                                     
                                     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 25%; aspect-ratio: 1/1; background: white; border-radius: 4px; display: flex; justify-content: center; align-items: center; padding: 2px;">
@@ -366,9 +367,9 @@
                                     </div>
                                 </div>
 
-                                <div style="text-align: center; margin-top: 10px;">
-                                    <p style="font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; color: #8a6a53; margin: 0;">Order ID: ${id}</p>
-                                    <p style="font-family: 'Inter', sans-serif; font-size: 9px; color: #d8a07c; margin: 3px 0 0 0;">✨ Hana Memoria ✨</p>
+                                <div style="text-align: center; margin-top: 8px;">
+                                    <p style="font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; color: #8a6a53; margin: 0;">Order ID: ${id}</p>
+                                    <p style="font-family: 'Inter', sans-serif; font-size: 8px; color: #d8a07c; margin: 2px 0 0 0;">✨ Hana Memoria ✨</p>
                                 </div>
                             </div>
 
