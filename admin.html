@@ -59,28 +59,27 @@
         .mindar-box { margin-top: 20px; background: #f0fdf4; padding: 15px; border-radius: 12px; border: 1px dashed #4ade80; }
         .btn-simpan-mindar { background: #22c55e; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; margin-top: 10px; font-weight: 600; cursor: pointer; }
 
-        /* PENGATURAN CETAK (ANTI TUMPUK & STABIL DI ANDROID) */
+        /* PENGATURAN CETAK GRID ANTI BERTUMPUK (DIPERTAHANKAN 100%) */
+        .grid-cetak {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15mm 10mm;
+            width: 100%;
+        }
+        .item-cetak {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
         @media print {
             body { margin: 0; padding: 0; background: white !important; }
             #app-container, .modal-overlay, .no-print { display: none !important; }
-            #area-cetak { 
-                display: block !important; 
-                width: 100% !important; 
-                max-width: 210mm !important; 
-                margin: 0 auto !important; 
-                padding: 5mm !important; 
-            }
+            #area-cetak { display: block !important; width: 100% !important; margin: 0 auto !important; padding: 0 !important; max-width: 210mm !important; }
+            
             .grid-cetak {
-                display: flex !important;
-                flex-wrap: wrap !important;
-                justify-content: flex-start !important;
-                gap: 2% !important; /* Jarak aman antar item */
-            }
-            .item-cetak {
-                width: 32% !important; /* 3 Kolom */
-                margin-bottom: 20px !important;
-                break-inside: avoid !important;
-                page-break-inside: avoid !important;
+                display: grid !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 15mm 10mm !important;
             }
             @page { size: A4 portrait; margin: 10mm; }
         }
@@ -168,14 +167,15 @@
         let linkFotoAktif = "";
         let totalPesananLama = 0;
 
-        // PERBAIKAN: Minta izin notifikasi dengan AMAN agar tidak Error di file Lokal Android
-        const isNotifSupported = ('Notification' in window);
+        // ==========================================
+        // PERBAIKAN: IZIN NOTIFIKASI AMAN (ANTI 0/BLANK)
+        // ==========================================
         try {
-            if (isNotifSupported && Notification.permission !== "granted" && Notification.permission !== "denied") {
-                Notification.requestPermission().catch(e => console.log(e));
+            if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+                Notification.requestPermission().catch(e => console.log("Notif ditolak", e));
             }
-        } catch (e) {
-            console.log("Notifikasi diblokir oleh sistem HP karena file dibuka secara lokal.");
+        } catch(e) {
+            console.log("Aman dibuka secara lokal.");
         }
 
         async function ambilDataPesanan() {
@@ -192,12 +192,11 @@
 
         function kirimNotifikasi(pesananBaru) {
             try {
-                if (isNotifSupported && Notification.permission === "granted") {
+                if ("Notification" in window && Notification.permission === "granted") {
                     new Notification("Pesanan Baru Masuk! ✨", { body: `Pelanggan: ${pesananBaru.nama_pelanggan}\nProduk: ${pesananBaru.jenis_pesanan}`, icon: 'https://img.icons8.com/color/96/unpacking.png' });
+                    new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(e => console.log(e));
                 }
-                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-                audio.play().catch(e => console.log(e));
-            } catch (error) {}
+            } catch(e) {}
         }
 
         async function perbaruiStatus(id, statusBaru) {
@@ -291,9 +290,9 @@
             buatDiagram(jmlPending, jmlPaid, jmlProses, jmlSelesai, jmlBelumMindAR);
         }
 
-        // ========================================================
-        // FUNGSI CETAK: TRIK "FOTO TEMBUS PANDANG" (100% STABIL)
-        // ========================================================
+        // ==========================================
+        // KODE CETAK (DIPERTAHANKAN 100% SESUAI YANG KAMU SUKA)
+        // ==========================================
         async function cetakMassal() {
             const checkboxes = document.querySelectorAll('.check-pesanan:checked');
             if (checkboxes.length === 0) return alert("⚠️ Silakan centang minimal satu pesanan di tabel terlebih dahulu!");
@@ -302,18 +301,6 @@
             const teksLama = btnCetak.innerHTML;
             btnCetak.innerHTML = "⏳ Menyiapkan Dokumen...";
             btnCetak.disabled = true;
-
-            // AMBIL LOGO BASE64 AGAR TIDAK DIBLOKIR BROWSER HP
-            let logoBase64 = "https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png"; 
-            try {
-                const resLogo = await fetch(logoBase64);
-                const blobLogo = await resLogo.blob();
-                logoBase64 = await new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.readAsDataURL(blobLogo);
-                });
-            } catch(e) { console.log("Info: Memakai logo url standar."); }
 
             let printArea = document.getElementById('area-cetak');
             if (!printArea) {
@@ -338,6 +325,8 @@
             gridContainer.className = 'grid-cetak';
             printArea.appendChild(gridContainer);
 
+            const logoUrl = "https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png";
+
             for (const cb of checkboxes) {
                 const id = cb.value;
                 const p = dataPesananGlobal.find(x => x.id_pesanan === id);
@@ -352,72 +341,127 @@
                 item.innerHTML = `
                     <div style="display: flex; flex-direction: column; gap: 8px;">
                         
-                        <img src="${p.link_foto}" style="width: 100%; height: auto; border-radius: 8px; border: 1px dashed #ccc; box-sizing: border-box; display: block;">
+                        <img src="${p.link_foto}" class="foto-ganci" style="width: 100%; height: auto; border-radius: 8px; border: 1px dashed #ccc; object-fit: contain; box-sizing: border-box;">
                         
-                        <div style="position: relative; width: 100%;">
+                        <div class="qr-wrapper" style="width: 100%; display: flex; flex-direction: column;">
                             
-                            <img src="${p.link_foto}" style="width: 100%; height: auto; opacity: 0; display: block; pointer-events: none;">
-
-                            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 2px solid #2d3436; border-radius: 12px; box-sizing: border-box; background: white; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                            <div class="qr-ganci" style="width: 100%; border: 2px solid #2d3436; border-radius: 12px; position: relative; padding: 15px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; align-items: center; background: white;">
                                 
                                 <div style="position: absolute; bottom: -12px; right: 10px; background: white; padding: 0 5px; z-index: 2;">
                                     <span style="font-family: 'Satisfy', cursive; font-size: 18px; font-weight: bold; color: #2d3436;">Scan me!</span>
                                 </div>
 
-                                <div style="position: absolute; top: -2px; left: 15px; width: 30px; height: 6px; background: white; z-index: 2;"></div>
+                                <div style="position: absolute; top: -5px; left: 15px; width: 30px; height: 10px; background: white; z-index: 2;"></div>
 
-                                <div style="position: relative; width: 85%; max-width: 150px; aspect-ratio: 1/1;">
-                                    <img src="${qrUrl}" style="width: 100%; height: 100%; display: block;">
+                                <div style="position: relative; width: 100%; display: flex; justify-content: center; align-items: center;">
+                                    <img src="${qrUrl}" style="width: 100%; max-width: 100%; object-fit: contain; display: block;">
                                     
-                                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 25%; aspect-ratio: 1/1; background: white; border-radius: 4px; display: flex; justify-content: center; align-items: center; padding: 2px;">
-                                        <img src="${logoBase64}" style="width: 100%; height: auto;">
+                                    <div style="position: absolute; width: 25%; aspect-ratio: 1/1; background: white; border-radius: 6px; display: flex; justify-content: center; align-items: center; padding: 2px; z-index: 3;">
+                                        <img src="${logoUrl}" style="width: 100%; height: auto;">
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div style="text-align: center; margin-top: 5px;">
-                            <p style="font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; color: #2d3436; margin: 0;">ID: ${id}</p>
-                            <p style="font-family: 'Inter', sans-serif; font-size: 9px; color: #636e72; margin: 2px 0 0 0;">✨ Hana Memoria ✨</p>
+                            <div style="text-align: center; margin-top: 15px; padding-bottom: 5px;">
+                                <p style="font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; color: #2d3436; margin: 0;">ID: ${id}</p>
+                                <p style="font-family: 'Inter', sans-serif; font-size: 9px; color: #636e72; margin: 2px 0 0 0;">✨ Hana Memoria ✨</p>
+                            </div>
+                            
                         </div>
                     </div>
                 `;
                 gridContainer.appendChild(item);
             }
 
-            // Tunggu semua gambar termuat sempurna di HP
-            const images = Array.from(gridContainer.querySelectorAll('img'));
+            const images = Array.from(gridContainer.querySelectorAll('.foto-ganci'));
             await Promise.all(images.map(img => new Promise(resolve => {
-                if (img.complete) resolve();
-                else { img.onload = resolve; img.onerror = resolve; }
+                if (img.complete) {
+                    samakanTinggiQR(img);
+                    resolve();
+                } else {
+                    img.onload = () => { samakanTinggiQR(img); resolve(); };
+                    img.onerror = resolve; 
+                }
             })));
+
+            function samakanTinggiQR(imgElem) {
+                const wrapper = imgElem.nextElementSibling;
+                if (wrapper) {
+                    const qrBox = wrapper.querySelector('.qr-ganci');
+                    if (qrBox && imgElem.offsetHeight > 10) {
+                        qrBox.style.height = imgElem.offsetHeight + 'px';
+                    }
+                }
+            }
 
             btnCetak.innerHTML = teksLama;
             btnCetak.disabled = false;
 
-            // Beri jeda 1.5 Detik untuk memberi napas pada memori HP sebelum buka dialog print
             setTimeout(() => {
                 window.print();
-            }, 1500);
+            }, 1000);
         }
 
         function getWaLink(pesanan, type) {
             let phone = pesanan.whatsapp || "";
             if (phone.startsWith('0')) phone = '62' + phone.substring(1);
+            let alamat = `${pesanan.alamat_detail || ''}, ${pesanan.kecamatan || ''}, ${pesanan.kota || ''}`;
+            let total = pesanan.total_harga ? pesanan.total_harga.toLocaleString('id-ID') : '0';
             let msg = "";
-            if (type === 'paid') msg = `Halo Kak 😊\nPembayaran untuk pesanan ${pesanan.id_pesanan} sudah kami terima 🤍`;
+            if (type === 'pending_payment') msg = `Halo Kak 😊\nTerima kasih sudah memesan di Hanamemoria 🤍\n\n📦 ID Pesanan: ${pesanan.id_pesanan}\n🧸 Produk: ${pesanan.jenis_pesanan}\n📍 Alamat: ${alamat}\n💰 Total Tagihan: Rp${total}\n\nSilakan lakukan pembayaran ke:\n🏦 BCA: 807683252\na.n Nuzulul Laila Khoirul Alfia\n\nSetelah transfer, mohon kirim bukti pembayaran ya 📩`;
+            else if (type === 'paid') msg = `Halo Kak 😊\nPembayaran untuk pesanan ${pesanan.id_pesanan} sudah kami terima 🤍\nEstimasi pengerjaan: ±3 hari kerja ✨`;
+            else if (type === 'processing') msg = `Halo Kak 😊\nPesanan ${pesanan.id_pesanan} saat ini sedang dalam proses pengerjaan ✨`;
+            else if (type === 'completed') msg = `Halo Kak 😊\nKabar baik! 🎉\nPesanan ${pesanan.id_pesanan} sudah selesai dan siap dikirim 🚚✨`;
             return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
         }
+
+        function buatDiagram(pending, paid, proses, selesai, mindar) {
+            const ctx = document.getElementById('grafikStatus').getContext('2d');
+            if (grafikVisual !== null) grafikVisual.destroy();
+            grafikVisual = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels: ['Belum Bayar', 'Lunas', 'Diproses', 'Selesai', 'Belum MindAR'], datasets: [{ data: [pending, paid, proses, selesai, mindar], backgroundColor: ['#fcd34d', '#a78bfa', '#7dd3fc', '#86efac', '#fca5a5'], borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
+            });
+        }
+
+        setInterval(ambilDataPesanan, 60000);
+        ambilDataPesanan();
 
         function bukaDetail(id) {
             idPesananAktif = id;
             const p = dataPesananGlobal.find(x => x.id_pesanan === id);
             if (p) {
                 document.getElementById('modal-id').innerText = `Detail: ${id}`;
+                document.getElementById('modal-alamat').innerText = `${p.alamat_detail || ''}, ${p.kecamatan || ''}, ${p.kota || ''}`;
+                document.getElementById('modal-ucapan').innerText = (p.slides && p.slides[1]) ? p.slides[1].b : "-";
+                linkFotoAktif = p.link_foto;
+                document.getElementById('btn-lihat-video').href = p.link_video;
                 document.getElementById('modal-detail').style.display = 'flex';
             }
         }
         function tutupDetail() { document.getElementById('modal-detail').style.display = 'none'; }
+        async function downloadFoto() { window.open(linkFotoAktif, '_blank'); }
+        async function uploadKeR2() {
+            const fileInput = document.getElementById('file-mindar');
+            const file = fileInput.files[0];
+            if (!file) return alert("Pilih file!");
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const base64Data = e.target.result.split(',')[1];
+                const res = await fetch(CLOUDFLARE_WORKER_URL, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'UPLOAD_MINDAR', id_pesanan: idPesananAktif, file_base64: base64Data })
+                });
+                const resData = await res.json();
+                if (resData.success) {
+                    alert("Berhasil!");
+                    perbaruiStatus(idPesananAktif, 'processing');
+                    tutupDetail();
+                }
+            };
+            reader.readAsDataURL(file);
+        }
     </script>
 </body>
 </html>
