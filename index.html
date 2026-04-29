@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Hana Memoria</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,600&display=swap" rel="stylesheet">
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
         :root { --bg-color: #fdfbf7; --card-bg: #ffffff; --text-main: #2d3436; --text-muted: #636e72; --accent-blue: #38bdf8; --soft-border: #f1ede4; --danger: #ef4444; }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); margin: 0; padding: 20px; color: var(--text-main); }
@@ -59,7 +60,7 @@
         .mindar-box { margin-top: 20px; background: #f0fdf4; padding: 15px; border-radius: 12px; border: 1px dashed #4ade80; }
         .btn-simpan-mindar { background: #22c55e; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; margin-top: 10px; font-weight: 600; cursor: pointer; }
 
-        /* PENGATURAN CETAK (LAYOUT PALING SOLID) */
+        /* PENGATURAN CETAK PDF STABIL */
         @media print {
             body { margin: 0; padding: 0; background: white !important; }
             #app-container, .modal-overlay, .no-print { display: none !important; }
@@ -72,7 +73,7 @@
                 gap: 20px 2% !important;
             }
             .item-cetak {
-                width: 32% !important; /* 3 Kolom */
+                width: 32% !important; 
                 break-inside: avoid !important;
                 page-break-inside: avoid !important;
             }
@@ -156,10 +157,13 @@
         const SUPABASE_URL = 'https://ujnuvlrdxzqtfppbhioo.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqbnV2bHJkeHpxdGZwcGJoaW9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNjU2OTYsImV4cCI6MjA5MDY0MTY5Nn0.slqPc8v7QZXxHzvMkOlXWAAYebX-sqUIiKZvA9DJkl0';
 
+        // MENGEMBALIKAN VARIABEL DIAGRAM YANG HILANG
+        let grafikVisual = null; 
         let dataPesananGlobal = [];
         let idPesananAktif = "";
         let linkFotoAktif = "";
 
+        // Izin Notifikasi
         if (window.location.protocol !== "file:") {
             if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
                 Notification.requestPermission();
@@ -262,19 +266,34 @@
             document.getElementById('count-proses').innerText = jmlProses;
             document.getElementById('count-mindar').innerText = jmlBelumMindAR;
             document.getElementById('count-selesai').innerText = jmlSelesai;
+            
+            // FUNGSI MEMBUAT DIAGRAM DIPANGGIL DI SINI
+            buatDiagram(jmlPending, jmlPaid, jmlProses, jmlSelesai, jmlBelumMindAR);
         }
 
         // ==========================================
-        // KODE CETAK: DESAIN ELEGAN & 100% KOKOH
+        // KODE CETAK TERBARU (YANG SUDAH BERHASIL & RAPI)
         // ==========================================
         async function cetakMassal() {
             const checkboxes = document.querySelectorAll('.check-pesanan:checked');
-            if (checkboxes.length === 0) return alert("⚠️ Silakan centang pesanan di tabel terlebih dahulu!");
+            if (checkboxes.length === 0) return alert("⚠️ Silakan centang pesanan terlebih dahulu!");
 
             const btnCetak = document.getElementById('btn-cetak-massal');
             const teksLama = btnCetak.innerHTML;
             btnCetak.innerHTML = "⏳ Menyiapkan Dokumen...";
             btnCetak.disabled = true;
+
+            // UBAH LOGO KE BASE64
+            let logoBase64 = "https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png"; 
+            try {
+                const resLogo = await fetch(logoBase64);
+                const blobLogo = await resLogo.blob();
+                logoBase64 = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(blobLogo);
+                });
+            } catch(e) { console.log("Gagal Base64, pakai URL standar"); }
 
             let printArea = document.getElementById('area-cetak');
             if (!printArea) {
@@ -299,9 +318,6 @@
             gridContainer.className = 'flex-cetak';
             printArea.appendChild(gridContainer);
 
-            // LOGO AMAN (Agar tidak menjadi icon pecah jika error)
-            const logoUrl = "https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png";
-
             for (const cb of checkboxes) {
                 const id = cb.value;
                 const p = dataPesananGlobal.find(x => x.id_pesanan === id);
@@ -312,73 +328,58 @@
 
                 const item = document.createElement('div');
                 item.className = 'item-cetak';
+                item.style.display = 'flex';
+                item.style.flexDirection = 'column';
+                item.style.alignItems = 'center';
+                item.style.gap = '8px';
 
-                // STRUKTUR HTML PALING AMAN (TANPA POSITION ABSOLUTE UNTUK TEKS)
                 item.innerHTML = `
-                    <img class="ganci-img" src="${p.link_foto}" style="width: 100%; height: auto; border-radius: 8px; border: 1px dashed #ccc; display: block;" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x400?text=Foto+Gagal';">
+                    <img class="foto-ganci" src="${p.link_foto}" style="width: 100%; height: auto; border-radius: 8px; border: 1px dashed #ccc; object-fit: contain; display: block; box-sizing: border-box;">
                     
-                    <div class="ganci-qr" style="width: 100%; border: 2px solid #2d3436; border-radius: 12px; margin-top: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box; background: white;">
+                    <fieldset class="qr-ganci" style="width: 100%; border: 2px solid #b88663; border-radius: 12px; background-color: #fdf8ef; padding: 10px; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box;">
                         
-                        <div style="position: relative; width: 90%; aspect-ratio: 1/1; display: flex; justify-content: center; align-items: center;">
-                            <img src="${qrUrl}" style="width: 100%; height: 100%; object-fit: contain; display: block;" onerror="this.style.display='none'">
+                        <legend style="font-family: 'Inter', sans-serif; font-weight: 800; font-size: 18px; color: #8a6a53; padding: 0 8px; margin: 0 auto; letter-spacing: 0.5px;">SCAN ME</legend>
+                        
+                        <div style="position: relative; width: 85%; max-width: 150px; aspect-ratio: 1/1; background: white; padding: 5px; border-radius: 8px; display: flex; justify-content: center; align-items: center; box-shadow: inset 0 0 5px rgba(0,0,0,0.05);">
+                            <img src="${qrUrl}" crossorigin="anonymous" style="width: 100%; height: 100%; object-fit: contain; display: block;">
                             
-                            <div style="position: absolute; width: 25%; aspect-ratio: 1/1; background: white; border-radius: 4px; padding: 2px; display: flex; justify-content: center; align-items: center;">
-                                <img src="${logoUrl}" style="width: 100%; height: auto;" onerror="this.style.display='none'">
+                            <div style="position: absolute; width: 25%; aspect-ratio: 1/1; background: white; border-radius: 4px; display: flex; justify-content: center; align-items: center; padding: 2px;">
+                                <img src="${logoBase64}" style="width: 100%; height: auto; display: block;">
                             </div>
                         </div>
 
-                        <div style="font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-weight: bold; font-size: 18px; color: #2d3436; margin-top: 10px; letter-spacing: 0.5px;">
-                            Scan me!
+                        <div style="text-align: center; margin-top: 15px;">
+                            <p style="font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #8a6a53; margin: 0;">Order ID: ${id}</p>
+                            <p style="font-family: 'Inter', sans-serif; font-size: 10px; color: #d8a07c; margin: 3px 0 0 0;">✨ Hana Memoria ✨</p>
                         </div>
-
-                    </div>
-
-                    <div style="text-align: center; margin-top: 6px;">
-                        <p style="font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #2d3436; margin: 0;">ID: ${id}</p>
-                        <p style="font-family: 'Inter', sans-serif; font-size: 10px; color: #636e72; margin: 2px 0 0 0;">✨ Hana Memoria ✨</p>
-                    </div>
+                        
+                    </fieldset>
                 `;
                 gridContainer.appendChild(item);
             }
 
-            // FUNGSI PENGUKUR TINGGI YANG LEBIH SABAR (Anti Kotak Kecil)
-            const applyHeights = () => {
-                const items = document.querySelectorAll('.item-cetak');
-                items.forEach(item => {
-                    const img = item.querySelector('.ganci-img');
-                    const qrBox = item.querySelector('.ganci-qr');
-                    if (img && qrBox && img.offsetHeight > 50) {
-                        qrBox.style.height = img.offsetHeight + 'px';
-                    }
-                });
-            };
+            // PENGUKUR TINGGI OTOMATIS: Memastikan Foto = QR
+            const images = Array.from(gridContainer.querySelectorAll('.foto-ganci'));
+            
+            await Promise.all(images.map(img => new Promise(resolve => {
+                if (img.complete) resolve();
+                else { img.onload = resolve; img.onerror = resolve; }
+            })));
 
-            // Tunggu semua foto benar-benar masuk sebelum mengukur
-            const imgElements = Array.from(gridContainer.querySelectorAll('.ganci-img'));
-            let loadedCount = 0;
-            const checkAllLoaded = () => {
-                loadedCount++;
-                if (loadedCount === imgElements.length) {
-                    applyHeights();
-                    btnCetak.innerHTML = teksLama;
-                    btnCetak.disabled = false;
-                    setTimeout(() => window.print(), 500); // Buka layar print
+            // Terapkan tinggi kotak QR sama dengan foto
+            images.forEach(img => {
+                const qrBox = img.nextElementSibling;
+                if (qrBox && img.offsetHeight > 30) {
+                    qrBox.style.height = img.offsetHeight + 'px';
                 }
-            };
+            });
 
-            if (imgElements.length === 0) {
-                btnCetak.innerHTML = teksLama;
-                btnCetak.disabled = false;
+            btnCetak.innerHTML = teksLama;
+            btnCetak.disabled = false;
+
+            setTimeout(() => {
                 window.print();
-            } else {
-                imgElements.forEach(img => {
-                    if (img.complete) checkAllLoaded();
-                    else {
-                        img.onload = checkAllLoaded;
-                        img.onerror = checkAllLoaded; // Walau gagal, tetap lanjut
-                    }
-                });
-            }
+            }, 800);
         }
 
         function getWaLink(pesanan, type) {
@@ -394,6 +395,7 @@
             return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
         }
 
+        // FUNGSI DIAGRAM YANG TADI HILANG KINI KEMBALI
         function buatDiagram(pending, paid, proses, selesai, mindar) {
             const ctx = document.getElementById('grafikStatus').getContext('2d');
             if (grafikVisual !== null) grafikVisual.destroy();
