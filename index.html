@@ -107,6 +107,7 @@
             <h3 style="margin: 0; font-size: 16px; color: var(--text-main);">Daftar Antrean</h3>
             <div class="action-group">
                 <button id="btn-cetak-massal" onclick="cetakMassal()" class="btn-detail" style="background: #10b981; color: white; border:none; padding: 10px 15px; font-size: 14px;">🖨️ Cetak / Simpan PDF (A4)</button>
+                <button id="btn-hapus-massal" onclick="hapusMassal()" class="btn-detail" style="background: #ef4444; color: white; border:none; padding: 10px 15px; font-size: 14px;">🗑️ Hapus Terpilih</button>
                 <select id="filter-produk" class="filter-box" onchange="renderTabel()">
                     <option value="Semua">📦 Semua Produk</option>
                     <option value="Gantungan Kunci">🔑 Gantungan Kunci</option>
@@ -251,7 +252,7 @@
                         <td><input type="checkbox" class="check-pesanan" value="${pesanan.id_pesanan}"></td>
                         <td><strong>${pesanan.id_pesanan}</strong></td>
                         <td>${pesanan.nama_pelanggan || '-'}</td>
-                        <td>${pesanan.jenis_pesanan || '-'}</td>
+                        <td>${pesanan.jenis_pesanan || '-'} (Qty: ${pesanan.jumlah || 1})</td>
                         <td><span class="${kelasDeadline}">${teksDeadline}</span></td>
                         <td>
                             <select class="select-status ${warnaBadge}" onchange="perbaruiStatus('${pesanan.id_pesanan}', this.value)">
@@ -266,6 +267,7 @@
                             <div class="aksi-container">
                                 <button class="btn-detail" onclick="bukaDetail('${pesanan.id_pesanan}')">Detail</button>
                                 <a href="${getWaLink(pesanan, statusAsli)}" target="_blank" class="btn-wa">${labelWA}</a>
+                                <button class="btn-detail" style="background: #fee2e2; color: #b91c1c; border-color: #f87171;" onclick="hapusPesanan('${pesanan.id_pesanan}')">Hapus</button>
                             </div>
                         </td>
                     `;
@@ -285,7 +287,7 @@
         }
 
         // ==========================================
-        // KODE CETAK (DESAIN FINAL: GARIS LUAR KHUSUS QR)
+        // KODE CETAK (DESAIN FINAL: MULTIPLY BERDASARKAN JUMLAH)
         // ==========================================
         async function cetakMassal() {
             const checkboxes = document.querySelectorAll('.check-pesanan:checked');
@@ -338,45 +340,51 @@
 
                 const linkAR = `${BASE_AR_URL}?id=${id}`;
                 const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(linkAR)}&ecc=H`;
+                
+                // Ambil nilai jumlah pesanan (default ke 1 kalau kosong/error)
+                const qty = parseInt(p.jumlah) || 1;
 
-                const item = document.createElement('div');
-                item.className = 'item-cetak';
+                // Looping pencetakan box sesuai jumlah pesanan
+                for (let i = 0; i < qty; i++) {
+                    const item = document.createElement('div');
+                    item.className = 'item-cetak';
 
-                item.innerHTML = `
-                    <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+                    item.innerHTML = `
+                        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
 
-                        <img src="${p.link_foto}" style="width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; display: block; box-sizing: border-box;">
-                        
-                        <div style="position: relative; width: 100%; border: 1px dashed #94a3b8; border-radius: 8px; background-color: #fdfaf4; box-sizing: border-box; margin-top: 25px;">
+                            <img src="${p.link_foto}" style="width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; display: block; box-sizing: border-box;">
                             
-                            <div style="position: absolute; top: 14px; left: 8px; right: 8px; bottom: 8px; border: 2px solid #b88663; border-radius: 10px; z-index: 1;"></div>
-
-                            <div style="position: absolute; top: 4px; left: 50%; transform: translateX(-50%); background: #fdfaf4; padding: 0 10px; z-index: 2;">
-                                <span style="font-family: 'Inter', sans-serif; font-weight: 800; font-size: 15px; color: #8a6a53; letter-spacing: 0.5px;">SCAN ME</span>
-                            </div>
-
-                            <img src="${p.link_foto}" style="width: 100%; height: auto; visibility: hidden; display: block; pointer-events: none; padding: 2px;">
-
-                            <div style="position: absolute; top: 25px; left: 0; right: 0; bottom: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 3;">
+                            <div style="position: relative; width: 100%; border: 1px dashed #94a3b8; border-radius: 8px; background-color: #fdfaf4; box-sizing: border-box; margin-top: 25px;">
                                 
-                                <div style="position: relative; width: 75%; max-width: 140px; aspect-ratio: 1/1; background: white; padding: 5px; border-radius: 8px; box-shadow: inset 0 0 5px rgba(0,0,0,0.05);">
-                                    <img src="${qrUrl}" crossorigin="anonymous" style="width: 100%; height: 100%; object-fit: contain; display: block;">
+                                <div style="position: absolute; top: 14px; left: 8px; right: 8px; bottom: 8px; border: 2px solid #b88663; border-radius: 10px; z-index: 1;"></div>
+
+                                <div style="position: absolute; top: 4px; left: 50%; transform: translateX(-50%); background: #fdfaf4; padding: 0 10px; z-index: 2;">
+                                    <span style="font-family: 'Inter', sans-serif; font-weight: 800; font-size: 15px; color: #8a6a53; letter-spacing: 0.5px;">SCAN ME</span>
+                                </div>
+
+                                <img src="${p.link_foto}" style="width: 100%; height: auto; visibility: hidden; display: block; pointer-events: none; padding: 2px;">
+
+                                <div style="position: absolute; top: 25px; left: 0; right: 0; bottom: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 3;">
                                     
-                                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 25%; aspect-ratio: 1/1; background: white; border-radius: 4px; display: flex; justify-content: center; align-items: center; padding: 2px;">
-                                        <img src="${logoBase64}" style="width: 100%; height: auto; display: block;">
+                                    <div style="position: relative; width: 75%; max-width: 140px; aspect-ratio: 1/1; background: white; padding: 5px; border-radius: 8px; box-shadow: inset 0 0 5px rgba(0,0,0,0.05);">
+                                        <img src="${qrUrl}" crossorigin="anonymous" style="width: 100%; height: 100%; object-fit: contain; display: block;">
+                                        
+                                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 25%; aspect-ratio: 1/1; background: white; border-radius: 4px; display: flex; justify-content: center; align-items: center; padding: 2px;">
+                                            <img src="${logoBase64}" style="width: 100%; height: auto; display: block;">
+                                        </div>
+                                    </div>
+
+                                    <div style="text-align: center; margin-top: 8px;">
+                                        <p style="font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; color: #8a6a53; margin: 0;">Order ID: ${id}</p>
+                                        <p style="font-family: 'Inter', sans-serif; font-size: 8px; color: #d8a07c; margin: 2px 0 0 0;">✨ Hana Memoria ✨</p>
                                     </div>
                                 </div>
 
-                                <div style="text-align: center; margin-top: 8px;">
-                                    <p style="font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; color: #8a6a53; margin: 0;">Order ID: ${id}</p>
-                                    <p style="font-family: 'Inter', sans-serif; font-size: 8px; color: #d8a07c; margin: 2px 0 0 0;">✨ Hana Memoria ✨</p>
-                                </div>
                             </div>
-
                         </div>
-                    </div>
-                `;
-                gridContainer.appendChild(item);
+                    `;
+                    gridContainer.appendChild(item);
+                }
             }
 
             // Tunggu semua gambar termuat sempurna di HP
@@ -435,27 +443,127 @@
                 document.getElementById('modal-detail').style.display = 'flex';
             }
         }
+        
         function tutupDetail() { document.getElementById('modal-detail').style.display = 'none'; }
+        
         async function downloadFoto() { window.open(linkFotoAktif, '_blank'); }
+        
         async function uploadKeR2() {
             const fileInput = document.getElementById('file-mindar');
             const file = fileInput.files[0];
             if (!file) return alert("Pilih file!");
+            
+            const btnUpload = document.getElementById('btn-upload-mindar');
+            const teksLama = btnUpload.innerHTML;
+            btnUpload.innerHTML = "⏳ Mengupload...";
+            btnUpload.disabled = true;
+
             const reader = new FileReader();
             reader.onload = async (e) => {
                 const base64Data = e.target.result.split(',')[1];
-                const res = await fetch(CLOUDFLARE_WORKER_URL, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'UPLOAD_MINDAR', id_pesanan: idPesananAktif, file_base64: base64Data })
-                });
-                const resData = await res.json();
-                if (resData.success) {
-                    alert("Berhasil!");
-                    perbaruiStatus(idPesananAktif, 'processing');
-                    tutupDetail();
+                try {
+                    const res = await fetch(CLOUDFLARE_WORKER_URL, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'UPLOAD_MINDAR', id_pesanan: idPesananAktif, file_base64: base64Data })
+                    });
+                    const resData = await res.json();
+                    if (resData.success) {
+                        alert("Berhasil mengupload target AR!");
+                        perbaruiStatus(idPesananAktif, 'processing');
+                        tutupDetail();
+                    } else {
+                        alert("Gagal: " + (resData.message || "Kesalahan tidak diketahui"));
+                    }
+                } catch (error) {
+                    alert("Gagal menghubungi server!");
+                } finally {
+                    btnUpload.innerHTML = teksLama;
+                    btnUpload.disabled = false;
                 }
             };
             reader.readAsDataURL(file);
+        }
+
+        // FUNGSI MENGHAPUS SATU PESANAN
+        async function hapusPesanan(id) {
+            const yakin = confirm(`Apakah kamu yakin ingin menghapus pesanan ${id}?\n\nMenghapus pesanan ini juga akan otomatis menghapus file foto dan video di Cloudflare R2.`);
+            if (!yakin) return; 
+
+            try {
+                const respon = await fetch(`${SUPABASE_URL}/rest/v1/Pesanan?id_pesanan=eq.${id}`, {
+                    method: 'DELETE',
+                    headers: { 
+                        'apikey': SUPABASE_KEY, 
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    }
+                });
+
+                if (!respon.ok) throw new Error("Gagal menghapus data.");
+                
+                alert(`Pesanan ${id} berhasil dihapus!`);
+                ambilDataPesanan(); 
+                
+            } catch (err) {
+                console.error(err);
+                alert("Terjadi kesalahan: " + err.message);
+            }
+        }
+
+        // FUNGSI MENGHAPUS BANYAK PESANAN SEKALIGUS (BULK DELETE)
+        async function hapusMassal() {
+            const checkboxes = document.querySelectorAll('.check-pesanan:checked');
+            if (checkboxes.length === 0) return alert("⚠️ Silakan centang minimal satu pesanan yang ingin dihapus!");
+
+            const yakin = confirm(`Apakah kamu yakin ingin menghapus ${checkboxes.length} pesanan sekaligus?\n\nFile foto dan video di Cloudflare R2 untuk pesanan-pesanan ini juga akan terhapus otomatis.`);
+            if (!yakin) return;
+
+            const btnHapus = document.getElementById('btn-hapus-massal');
+            const teksLama = btnHapus.innerHTML;
+            btnHapus.innerHTML = "⏳ Menghapus...";
+            btnHapus.disabled = true;
+
+            try {
+                let suksesCount = 0;
+                let errorCount = 0;
+
+                // Loop menghapus satu per satu (agar webhook Supabase tetap berjalan per-baris)
+                for (const cb of checkboxes) {
+                    const id = cb.value;
+                    const respon = await fetch(`${SUPABASE_URL}/rest/v1/Pesanan?id_pesanan=eq.${id}`, {
+                        method: 'DELETE',
+                        headers: { 
+                            'apikey': SUPABASE_KEY, 
+                            'Authorization': `Bearer ${SUPABASE_KEY}`,
+                            'Content-Type': 'application/json',
+                            'Prefer': 'return=minimal'
+                        }
+                    });
+
+                    if (respon.ok) {
+                        suksesCount++;
+                    } else {
+                        errorCount++;
+                    }
+                }
+
+                if (errorCount > 0) {
+                    alert(`Selesai! Berhasil menghapus ${suksesCount} pesanan. Gagal menghapus ${errorCount} pesanan.`);
+                } else {
+                    alert(`Berhasil menghapus ${suksesCount} pesanan terpilih!`);
+                }
+                
+                document.getElementById('check-all').checked = false; // Reset centang atas
+                ambilDataPesanan(); // Refresh tabel
+
+            } catch (err) {
+                console.error(err);
+                alert("Terjadi kesalahan jaringan: " + err.message);
+            } finally {
+                btnHapus.innerHTML = teksLama;
+                btnHapus.disabled = false;
+            }
         }
     </script>
 </body>
