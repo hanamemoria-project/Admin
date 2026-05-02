@@ -287,7 +287,7 @@
         }
 
         // ==========================================
-        // KODE CETAK (DESAIN FINAL: MULTIPLY BERDASARKAN JUMLAH)
+        // KODE CETAK (DESAIN FINAL: GARIS LUAR KHUSUS QR)
         // ==========================================
         async function cetakMassal() {
             const checkboxes = document.querySelectorAll('.check-pesanan:checked');
@@ -341,10 +341,8 @@
                 const linkAR = `${BASE_AR_URL}?id=${id}`;
                 const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(linkAR)}&ecc=H`;
                 
-                // Ambil nilai jumlah pesanan (default ke 1 kalau kosong/error)
                 const qty = parseInt(p.jumlah) || 1;
 
-                // Looping pencetakan box sesuai jumlah pesanan
                 for (let i = 0; i < qty; i++) {
                     const item = document.createElement('div');
                     item.className = 'item-cetak';
@@ -443,48 +441,29 @@
                 document.getElementById('modal-detail').style.display = 'flex';
             }
         }
-        
         function tutupDetail() { document.getElementById('modal-detail').style.display = 'none'; }
-        
         async function downloadFoto() { window.open(linkFotoAktif, '_blank'); }
-        
         async function uploadKeR2() {
             const fileInput = document.getElementById('file-mindar');
             const file = fileInput.files[0];
             if (!file) return alert("Pilih file!");
-            
-            const btnUpload = document.getElementById('btn-upload-mindar');
-            const teksLama = btnUpload.innerHTML;
-            btnUpload.innerHTML = "⏳ Mengupload...";
-            btnUpload.disabled = true;
-
             const reader = new FileReader();
             reader.onload = async (e) => {
                 const base64Data = e.target.result.split(',')[1];
-                try {
-                    const res = await fetch(CLOUDFLARE_WORKER_URL, {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'UPLOAD_MINDAR', id_pesanan: idPesananAktif, file_base64: base64Data })
-                    });
-                    const resData = await res.json();
-                    if (resData.success) {
-                        alert("Berhasil mengupload target AR!");
-                        perbaruiStatus(idPesananAktif, 'processing');
-                        tutupDetail();
-                    } else {
-                        alert("Gagal: " + (resData.message || "Kesalahan tidak diketahui"));
-                    }
-                } catch (error) {
-                    alert("Gagal menghubungi server!");
-                } finally {
-                    btnUpload.innerHTML = teksLama;
-                    btnUpload.disabled = false;
+                const res = await fetch(CLOUDFLARE_WORKER_URL, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'UPLOAD_MINDAR', id_pesanan: idPesananAktif, file_base64: base64Data })
+                });
+                const resData = await res.json();
+                if (resData.success) {
+                    alert("Berhasil!");
+                    perbaruiStatus(idPesananAktif, 'processing');
+                    tutupDetail();
                 }
             };
             reader.readAsDataURL(file);
         }
 
-        // FUNGSI MENGHAPUS SATU PESANAN
         async function hapusPesanan(id) {
             const yakin = confirm(`Apakah kamu yakin ingin menghapus pesanan ${id}?\n\nMenghapus pesanan ini juga akan otomatis menghapus file foto dan video di Cloudflare R2.`);
             if (!yakin) return; 
@@ -511,7 +490,6 @@
             }
         }
 
-        // FUNGSI MENGHAPUS BANYAK PESANAN SEKALIGUS (BULK DELETE)
         async function hapusMassal() {
             const checkboxes = document.querySelectorAll('.check-pesanan:checked');
             if (checkboxes.length === 0) return alert("⚠️ Silakan centang minimal satu pesanan yang ingin dihapus!");
@@ -528,7 +506,6 @@
                 let suksesCount = 0;
                 let errorCount = 0;
 
-                // Loop menghapus satu per satu (agar webhook Supabase tetap berjalan per-baris)
                 for (const cb of checkboxes) {
                     const id = cb.value;
                     const respon = await fetch(`${SUPABASE_URL}/rest/v1/Pesanan?id_pesanan=eq.${id}`, {
@@ -554,8 +531,8 @@
                     alert(`Berhasil menghapus ${suksesCount} pesanan terpilih!`);
                 }
                 
-                document.getElementById('check-all').checked = false; // Reset centang atas
-                ambilDataPesanan(); // Refresh tabel
+                document.getElementById('check-all').checked = false;
+                ambilDataPesanan();
 
             } catch (err) {
                 console.error(err);
