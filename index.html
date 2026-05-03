@@ -287,7 +287,7 @@
         }
 
         // ==========================================
-        // KODE CETAK (DESAIN FINAL: GARIS LUAR KHUSUS QR)
+        // KODE CETAK (DIPERBAIKI DENGAN SISTEM ANTI MACET)
         // ==========================================
         async function cetakMassal() {
             const checkboxes = document.querySelectorAll('.check-pesanan:checked');
@@ -298,17 +298,7 @@
             btnCetak.innerHTML = "⏳ Menyiapkan Dokumen...";
             btnCetak.disabled = true;
 
-            // AMBIL LOGO BASE64 AGAR TIDAK DIBLOKIR BROWSER HP
             let logoBase64 = "https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png"; 
-            try {
-                const resLogo = await fetch(logoBase64);
-                const blobLogo = await resLogo.blob();
-                logoBase64 = await new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.readAsDataURL(blobLogo);
-                });
-            } catch(e) {}
 
             let printArea = document.getElementById('area-cetak');
             if (!printArea) {
@@ -347,6 +337,7 @@
                     const item = document.createElement('div');
                     item.className = 'item-cetak';
 
+                    // Note: atribut crossorigin dihapus dari gambar qr untuk menghindari macet di HP
                     item.innerHTML = `
                         <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
 
@@ -365,7 +356,7 @@
                                 <div style="position: absolute; top: 25px; left: 0; right: 0; bottom: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 3;">
                                     
                                     <div style="position: relative; width: 75%; max-width: 140px; aspect-ratio: 1/1; background: white; padding: 5px; border-radius: 8px; box-shadow: inset 0 0 5px rgba(0,0,0,0.05);">
-                                        <img src="${qrUrl}" crossorigin="anonymous" style="width: 100%; height: 100%; object-fit: contain; display: block;">
+                                        <img src="${qrUrl}" style="width: 100%; height: 100%; object-fit: contain; display: block;">
                                         
                                         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 25%; aspect-ratio: 1/1; background: white; border-radius: 4px; display: flex; justify-content: center; align-items: center; padding: 2px;">
                                             <img src="${logoBase64}" style="width: 100%; height: auto; display: block;">
@@ -385,20 +376,25 @@
                 }
             }
 
-            // Tunggu semua gambar termuat sempurna di HP
+            // PERBAIKAN: Sistem timeout maksimal 3 detik agar tidak macet
             const images = Array.from(gridContainer.querySelectorAll('img'));
-            await Promise.all(images.map(img => new Promise(resolve => {
+            const imagePromises = images.map(img => new Promise(resolve => {
                 if (img.complete) resolve();
                 else { img.onload = resolve; img.onerror = resolve; }
-            })));
+            }));
+
+            await Promise.race([
+                Promise.all(imagePromises),
+                new Promise(resolve => setTimeout(resolve, 3000))
+            ]);
 
             btnCetak.innerHTML = teksLama;
             btnCetak.disabled = false;
 
-            // Beri jeda 1.5 Detik untuk memberi napas pada memori HP sebelum buka dialog print
+            // Langsung panggil fungsi print setelah render DOM
             setTimeout(() => {
                 window.print();
-            }, 1500);
+            }, 500);
         }
 
         function getWaLink(pesanan, type) {
