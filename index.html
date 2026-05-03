@@ -58,14 +58,16 @@
         .mindar-box { margin-top: 20px; background: #f0fdf4; padding: 15px; border-radius: 12px; border: 1px dashed #4ade80; }
         .btn-simpan-mindar { background: #22c55e; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; margin-top: 10px; font-weight: 600; cursor: pointer; }
 
-        /* PENGATURAN CETAK GRID (PALING STABIL UNTUK ANDROID) */
+        /* PENGATURAN CETAK MENGGUNAKAN FLEXBOX (STABIL DI ANDROID) */
         .grid-cetak {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            display: flex;
+            flex-wrap: wrap;
             gap: 15mm 10mm;
             width: 100%;
+            justify-content: flex-start;
         }
         .item-cetak {
+            width: 60mm; /* Dikunci ukurannya agar tidak melar */
             break-inside: avoid;
             page-break-inside: avoid;
         }
@@ -76,11 +78,18 @@
             #area-cetak { display: block !important; width: 100% !important; margin: 0 auto !important; padding: 0 !important; max-width: 100% !important; }
             
             .grid-cetak {
-                display: grid !important;
-                grid-template-columns: repeat(auto-fit, minmax(60mm, 1fr)) !important;
+                display: flex !important;
+                flex-wrap: wrap !important;
                 gap: 15mm 10mm !important;
+                justify-content: center !important; /* Posisi di tengah agar rapi baik portrait maupun landscape */
             }
-            @page { size: 215mm 330mm; margin: 10mm; }
+            .item-cetak {
+                width: 60mm !important; 
+            }
+            @page { 
+                size: A4; /* Ukuran standar percetakan */
+                margin: 10mm; 
+            }
         }
     </style>
 </head>
@@ -337,7 +346,6 @@
                     const item = document.createElement('div');
                     item.className = 'item-cetak';
 
-                    // Note: atribut crossorigin dihapus dari gambar qr untuk menghindari macet di HP
                     item.innerHTML = `
                         <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
 
@@ -376,7 +384,6 @@
                 }
             }
 
-            // PERBAIKAN: Sistem timeout maksimal 3 detik agar tidak macet
             const images = Array.from(gridContainer.querySelectorAll('img'));
             const imagePromises = images.map(img => new Promise(resolve => {
                 if (img.complete) resolve();
@@ -391,7 +398,6 @@
             btnCetak.innerHTML = teksLama;
             btnCetak.disabled = false;
 
-            // Langsung panggil fungsi print setelah render DOM
             setTimeout(() => {
                 window.print();
             }, 500);
