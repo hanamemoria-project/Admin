@@ -73,14 +73,14 @@
         @media print {
             body { margin: 0; padding: 0; background: white !important; }
             #app-container, .modal-overlay, .no-print { display: none !important; }
-            #area-cetak { display: block !important; width: 100% !important; margin: 0 auto !important; padding: 0 !important; max-width: 210mm !important; }
+            #area-cetak { display: block !important; width: 100% !important; margin: 0 auto !important; padding: 0 !important; max-width: 100% !important; }
             
             .grid-cetak {
                 display: grid !important;
-                grid-template-columns: repeat(3, 1fr) !important;
+                grid-template-columns: repeat(auto-fit, minmax(60mm, 1fr)) !important;
                 gap: 15mm 10mm !important;
             }
-            @page { size: A4 portrait; margin: 10mm; }
+            @page { size: 215mm 330mm; margin: 10mm; }
         }
     </style>
 </head>
