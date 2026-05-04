@@ -58,19 +58,23 @@
         .mindar-box { margin-top: 20px; background: #f0fdf4; padding: 15px; border-radius: 12px; border: 1px dashed #4ade80; }
         .btn-simpan-mindar { background: #22c55e; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; margin-top: 10px; font-weight: 600; cursor: pointer; }
 
-        /* PENGATURAN CETAK MENGGUNAKAN FLEXBOX (STABIL DI ANDROID) */
+        /* PENGATURAN CETAK MENGGUNAKAN FLEXBOX KAKU (ANTI TUMPANG TINDIH) */
         .grid-cetak {
             display: flex;
             flex-wrap: wrap;
-            gap: 5mm; /* Diubah agar lebih rapat saat landscape */
+            gap: 10mm 5mm; /* Jarak vertikal 10mm, horizontal 5mm */
             width: 100%;
-            justify-content: flex-start; /* Diubah jadi rata kiri agar mengisi ruang kosong */
-            align-content: flex-start;
+            justify-content: flex-start;
+            align-items: flex-start; /* CRITICAL: Mencegah elemen saling tarik/bertumpuk */
         }
         .item-cetak {
-            width: 60mm; /* Dikunci ukurannya agar tidak melar */
+            width: 60mm; 
+            flex: 0 0 60mm; /* CRITICAL: Mengunci lebar mutlak agar tidak hancur di Android */
+            max-width: 60mm;
+            box-sizing: border-box;
             break-inside: avoid;
             page-break-inside: avoid;
+            margin-bottom: 5mm;
         }
 
         @media print {
@@ -81,14 +85,19 @@
             .grid-cetak {
                 display: flex !important;
                 flex-wrap: wrap !important;
-                gap: 5mm !important; /* Diubah agar lebih rapat */
-                justify-content: flex-start !important; /* Diubah jadi rata kiri */
-                align-content: flex-start !important;
+                gap: 10mm 5mm !important;
+                justify-content: flex-start !important; 
+                align-items: flex-start !important;
             }
             .item-cetak {
                 width: 60mm !important; 
+                flex: 0 0 60mm !important;
+                max-width: 60mm !important;
             }
-            /* @page dihapus dari sini agar bisa diatur dinamis lewat Javascript */
+            @page { 
+                size: A4; /* Ukuran standar percetakan */
+                margin: 10mm; 
+            }
         }
     </style>
 </head>
@@ -114,12 +123,7 @@
         <div class="table-controls">
             <h3 style="margin: 0; font-size: 16px; color: var(--text-main);">Daftar Antrean</h3>
             <div class="action-group">
-                <select id="pilihan-kertas" class="filter-box" style="border-color: #10b981; color: #047857;">
-                    <option value="A4">📄 A4 (21 x 29.7 cm)</option>
-                    <option value="215mm 330mm">📝 F4 / Folio (21.5 x 33 cm)</option>
-                    <option value="320mm 480mm">🖨️ A3+ / Art Carton (32 x 48 cm)</option>
-                </select>
-                <button id="btn-cetak-massal" onclick="cetakMassal()" class="btn-detail" style="background: #10b981; color: white; border:none; padding: 10px 15px; font-size: 14px;">🖨️ Cetak / Simpan PDF</button>
+                <button id="btn-cetak-massal" onclick="cetakMassal()" class="btn-detail" style="background: #10b981; color: white; border:none; padding: 10px 15px; font-size: 14px;">🖨️ Cetak / Simpan PDF (A4)</button>
                 <button id="btn-hapus-massal" onclick="hapusMassal()" class="btn-detail" style="background: #ef4444; color: white; border:none; padding: 10px 15px; font-size: 14px;">🗑️ Hapus Terpilih</button>
                 <select id="filter-produk" class="filter-box" onchange="renderTabel()">
                     <option value="Semua">📦 Semua Produk</option>
@@ -310,17 +314,6 @@
             const teksLama = btnCetak.innerHTML;
             btnCetak.innerHTML = "⏳ Menyiapkan Dokumen...";
             btnCetak.disabled = true;
-
-            // --- TAMBAHAN: Set Ukuran Kertas Dinamis ---
-            const ukuranKertas = document.getElementById('pilihan-kertas') ? document.getElementById('pilihan-kertas').value : 'A4';
-            let stylePrint = document.getElementById('dinamis-print-style');
-            if (!stylePrint) {
-                stylePrint = document.createElement('style');
-                stylePrint.id = 'dinamis-print-style';
-                document.head.appendChild(stylePrint);
-            }
-            stylePrint.innerHTML = `@page { size: ${ukuranKertas}; margin: 10mm; }`;
-            // -------------------------------------------
 
             let logoBase64 = "https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png"; 
 
