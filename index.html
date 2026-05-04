@@ -58,23 +58,18 @@
         .mindar-box { margin-top: 20px; background: #f0fdf4; padding: 15px; border-radius: 12px; border: 1px dashed #4ade80; }
         .btn-simpan-mindar { background: #22c55e; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; margin-top: 10px; font-weight: 600; cursor: pointer; }
 
-        /* PENGATURAN CETAK MENGGUNAKAN FLEXBOX KAKU (ANTI TUMPANG TINDIH) */
+        /* PENGATURAN CETAK MENGGUNAKAN FLEXBOX (STABIL DI ANDROID) */
         .grid-cetak {
             display: flex;
             flex-wrap: wrap;
-            gap: 10mm 5mm; /* Jarak vertikal 10mm, horizontal 5mm */
+            gap: 15mm 10mm;
             width: 100%;
             justify-content: flex-start;
-            align-items: flex-start; /* CRITICAL: Mencegah elemen saling tarik/bertumpuk */
         }
         .item-cetak {
-            width: 60mm; 
-            flex: 0 0 60mm; /* CRITICAL: Mengunci lebar mutlak agar tidak hancur di Android */
-            max-width: 60mm;
-            box-sizing: border-box;
+            width: 60mm; /* Dikunci ukurannya agar tidak melar */
             break-inside: avoid;
             page-break-inside: avoid;
-            margin-bottom: 5mm;
         }
 
         @media print {
@@ -85,14 +80,11 @@
             .grid-cetak {
                 display: flex !important;
                 flex-wrap: wrap !important;
-                gap: 10mm 5mm !important;
-                justify-content: flex-start !important; 
-                align-items: flex-start !important;
+                gap: 15mm 10mm !important;
+                justify-content: center !important; /* Posisi di tengah agar rapi baik portrait maupun landscape */
             }
             .item-cetak {
                 width: 60mm !important; 
-                flex: 0 0 60mm !important;
-                max-width: 60mm !important;
             }
             @page { 
                 size: A4; /* Ukuran standar percetakan */
