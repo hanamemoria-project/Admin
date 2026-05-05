@@ -304,7 +304,9 @@
 
             const btnCetak = document.getElementById('btn-cetak-massal');
             const teksLama = btnCetak.innerHTML;
-            btnCetak.innerHTML = "⏳ Menyiapkan Dokumen...";
+            
+            // PEMBERITAHUAN WAKTU DOWNLOAD AGAR TIDAK BINGUNG
+            btnCetak.innerHTML = "⏳ Mendownload Foto... Mohon tunggu...";
             btnCetak.disabled = true;
 
             let logoBase64 = "https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png"; 
@@ -392,7 +394,9 @@
 
             await Promise.race([
                 Promise.all(imagePromises),
-                new Promise(resolve => setTimeout(resolve, 3000))
+                
+                // BATAS WAKTU DOWNLOAD DIRUBAH DARI 3 DETIK MENJADI 15 DETIK AGAR FOTO MUNCUL
+                new Promise(resolve => setTimeout(resolve, 15000))
             ]);
 
             btnCetak.innerHTML = teksLama;
