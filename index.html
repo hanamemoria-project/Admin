@@ -152,10 +152,14 @@
             <h2 id="modal-id">Detail Pesanan</h2>
             <div class="info-group"><label>Alamat Pengiriman</label><p id="modal-alamat">-</p></div>
             <div class="info-group"><label>Pesan / Ucapan Pelanggan</label><p id="modal-ucapan">-</p></div>
+            
             <div class="media-links">
-                <button onclick="downloadFoto()" id="btn-download-foto" class="btn-media">📥 Download Foto (Untuk MindAR)</button>
+                <button onclick="downloadFoto()" id="btn-download-foto" class="btn-media">1️⃣ Buka & Simpan Foto Target</button>
+                <a href="https://hiukim.github.io/mind-ar-js-doc/tools/compile" target="_blank" class="btn-media" style="background: #e0f2fe; color: #0369a1; border-color: #bae6fd;">2️⃣ Buka Compiler MindAR</a>
+                <button onclick="downloadQRCode()" id="btn-download-qr" class="btn-media" style="background: #fef3c7; color: #b45309; border-color: #fde68a;">3️⃣ Buka & Simpan QR Code</button>
                 <a href="#" id="btn-lihat-video" target="_blank" class="btn-media">🎬 Lihat Video R2</a>
             </div>
+            
             <div class="mindar-box">
                 <label style="font-size: 13px; color: #166534; font-weight: 700; display: block; margin-bottom: 5px;">🚀 Pintu Upload ke R2</label>
                 <input type="file" id="file-mindar" accept=".mind, .txt" style="width:100%; margin-top:5px; background:white; padding:8px; border-radius:8px; border:1px solid #bbf7d0;">
@@ -448,7 +452,18 @@
             }
         }
         function tutupDetail() { document.getElementById('modal-detail').style.display = 'none'; }
+        
         async function downloadFoto() { window.open(linkFotoAktif, '_blank'); }
+
+        // FUNGSI BARU UNTUK DOWNLOAD QR CODE SAJA
+        function downloadQRCode() {
+            if (!idPesananAktif) return;
+            const linkAR = `${BASE_AR_URL}?id=${idPesananAktif}`;
+            // Memanggil API QR dengan ukuran besar 500x500
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(linkAR)}&ecc=H`;
+            window.open(qrUrl, '_blank');
+        }
+
         async function uploadKeR2() {
             const fileInput = document.getElementById('file-mindar');
             const file = fileInput.files[0];
