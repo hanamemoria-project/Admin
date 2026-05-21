@@ -1382,6 +1382,8 @@ input[type=checkbox] {
 
   padding: 16px;
 
+  overflow-y: auto;
+
 }
 
 .overlay.show { display: flex; }
@@ -1578,6 +1580,10 @@ input[type=checkbox] {
 
 .orient-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
+@media (max-width: 400px) {
+  .orient-grid { grid-template-columns: 1fr; gap: 10px; }
+}
+
 .orient-btn {
 
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -1662,6 +1668,8 @@ input[type=checkbox] {
 
 #area-cetak { display: none; }
 
+#section-keuangan { display: none; }
+
 
 
 .print-toolbar {
@@ -1743,8 +1751,6 @@ input[type=checkbox] {
   .item-cetak { width: 210px !important; }
 
   .item-cetak.landscape-mode { width: 185px !important; }
-
-  @page { size: A4 portrait; margin: 10mm; }
 
 }
 
@@ -2001,6 +2007,12 @@ input[type=checkbox] {
       <span class="icon">📋</span><span class="nav-text">Pesanan</span>
 
       <span class="notif-dot" id="sidebar-notif-dot"></span>
+
+    </button>
+
+    <button class="nav-item" onclick="showSection('keuangan',this)">
+
+      <span class="icon">💰</span><span class="nav-text">Keuangan</span>
 
     </button>
 
@@ -2418,6 +2430,12 @@ input[type=checkbox] {
 
     </button>
 
+    <button class="bottom-nav-item" onclick="showSection('keuangan',this)">
+
+      <span class="bnav-icon">💰</span>Keuangan
+
+    </button>
+
     <button class="bottom-nav-item" onclick="cetakMassal()">
 
       <span class="bnav-icon">🖨️</span>Cetak
@@ -2550,7 +2568,7 @@ input[type=checkbox] {
 
 <div class="overlay" id="modal-orientasi">
 
-  <div class="modal" style="max-width:340px;">
+  <div class="modal" style="max-width:360px;margin:16px;width:calc(100% - 32px);">
 
     <div class="modal-header">
 
@@ -2660,7 +2678,11 @@ input[type=checkbox] {
 
     </div>
 
-    <button class="btn btn-secondary no-print" onclick="window.location.reload()">⬅️ Kembali ke Dashboard</button>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+
+      <button class="btn btn-secondary no-print" onclick="window.location.reload()">⬅️ Kembali ke Dashboard</button>
+
+    </div>
 
   </div>
 
@@ -2841,16 +2863,33 @@ function closeSidebar() {
 /* ===== SECTION SWITCHING ===== */
 
 function showSection(s, el) {
+  // Hide all sections
+  document.querySelectorAll('#section-dashboard, #section-keuangan').forEach(sec => {
+    sec.style.display = 'none';
+  });
 
+  // Show target section
+  const target = document.getElementById('section-' + s);
+  if (target) target.style.display = '';
+
+  // Update nav active states
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-
   document.querySelectorAll('.bottom-nav-item').forEach(i => i.classList.remove('active'));
-
   if (el) el.classList.add('active');
 
-  closeSidebar();
+  // Update topbar title
+  const titles = { dashboard: 'Command Center', keuangan: 'Keuangan' };
+  const h1 = document.querySelector('#topbar .topbar-left h1');
+  if (h1 && titles[s]) h1.textContent = titles[s];
 
+  closeSidebar();
 }
+
+// Init: hide keuangan on load
+document.addEventListener('DOMContentLoaded', function() {
+  const keu = document.getElementById('section-keuangan');
+  if (keu) keu.style.display = 'none';
+});
 
 
 
@@ -4166,11 +4205,10 @@ async function jalankanCetak(orientasi) {
 
 
 
+  // Set page orientation via dynamic style
   let styleTag = document.getElementById('page-style');
-
   if (!styleTag) { styleTag = document.createElement('style'); styleTag.id = 'page-style'; document.head.appendChild(styleTag); }
-
-  styleTag.textContent = `@page { size: A4 ${orientasi}; margin: 10mm; }`;
+  styleTag.textContent = `@media print { @page { size: A4 ${orientasi}; margin: 10mm; } }`;
 
 
 
