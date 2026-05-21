@@ -26,7 +26,40 @@
 
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Buat overlay loading SEBELUM DOM diparse, dijamin penuh layar -->
+<script>
+(function(){
+  var ov = document.createElement('div');
+  ov.id = 'loading-overlay-instant';
+  ov.style.cssText = [
+    'position:fixed','top:0','left:0',
+    'width:100vw','height:100vh',
+    'background:#2a1f14',
+    'z-index:9999999',
+    'display:flex','flex-direction:column',
+    'align-items:center','justify-content:center',
+    'transition:opacity 0.5s ease',
+    'font-family:sans-serif'
+  ].join(';');
+  ov.innerHTML = '<img src="https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png" style="width:120px;height:120px;object-fit:contain;background:white;border-radius:24px;padding:12px;box-shadow:0 20px 60px rgba(0,0,0,0.5);margin-bottom:24px;" onerror="this.style.display=\'none\'"><div style="color:#fdf8f2;font-size:22px;font-weight:700;letter-spacing:0.5px;margin-bottom:4px;">Hana <em style=\'color:#c4a882;font-style:italic\'>Memoria</em></div><div style="color:#9e8776;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:20px;">Admin Dashboard</div><div style="width:140px;height:3px;background:rgba(255,255,255,0.1);border-radius:99px;overflow:hidden;"><div id="lov-bar" style="height:100%;background:#c4a882;border-radius:99px;animation:lovBar 1.8s ease-in-out infinite;"></div></div><div id="lov-error" style="display:none;margin-top:24px;text-align:center;"><p style="color:rgba(255,255,255,0.5);font-size:13px;margin-bottom:12px;">Gagal memuat. Periksa koneksi.</p><button onclick="location.reload()" style="background:#c4a882;color:#2a1f14;border:none;padding:10px 24px;border-radius:50px;font-weight:700;font-size:13px;cursor:pointer;">↻ Coba Lagi</button></div>';
+  var style = document.createElement('style');
+  style.textContent = '@keyframes lovBar{0%{width:0%;margin-left:0%}50%{width:60%;margin-left:20%}100%{width:0%;margin-left:100%}}';
+  document.head.appendChild(style);
+  document.addEventListener('DOMContentLoaded', function(){ document.body.appendChild(ov); });
+  // Fallback: jika DOMContentLoaded lambat, append ke html
+  document.documentElement.appendChild(ov);
+  window.__hideInstantLoading = function() {
+    ov.style.opacity = '0';
+    setTimeout(function(){ if(ov.parentNode) ov.parentNode.removeChild(ov); }, 600);
+  };
+  window.__showInstantError = function() {
+    var e = document.getElementById('lov-error');
+    if(e) e.style.display = 'block';
+  };
+})();
+</script>
 
 <style>
 
@@ -124,11 +157,13 @@ body {
 
   position: fixed;
 
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0 !important; left: 0 !important;
 
-  width: 100vw;
+  right: 0 !important; bottom: 0 !important;
 
-  height: 100vh;
+  width: 100% !important; height: 100% !important;
+
+  min-width: 100vw; min-height: 100vh;
 
   background: var(--ink);
 
@@ -142,52 +177,42 @@ body {
 
   z-index: 99999;
 
-  transition: opacity 0.6s ease, visibility 0.6s ease;
+  transition: opacity 0.5s ease;
 
-  overflow: hidden;
+  margin: 0 !important;
+
+  transform: none !important;
 
 }
 
-#loading-screen.fade-out { opacity: 0; visibility: hidden; }
-
-
-
-.loading-progress {
-
-  width: 160px;
-
-  height: 3px;
-
-  background: rgba(255,255,255,0.1);
-
-  border-radius: 99px;
-
-  overflow: hidden;
-
-  margin-top: 20px;
-
-}
-
-.loading-progress-bar {
-
-  height: 100%;
-
-  background: var(--brown-light);
-
-  border-radius: 99px;
-
-  animation: loadBar 1.8s ease-in-out infinite;
-
-}
-
-@keyframes loadBar {
-
-  0%   { width: 0%;   margin-left: 0%; }
-
-  50%  { width: 60%;  margin-left: 20%; }
-
-  100% { width: 0%;   margin-left: 100%; }
-
+#loading-screen.fade-out { opacity: 0; pointer-events: none; }
+
+.loading-progress {
+
+  width: 160px; height: 3px;
+
+  background: rgba(255,255,255,0.1);
+
+  border-radius: 99px; overflow: hidden; margin-top: 20px;
+
+}
+
+.loading-progress-bar {
+
+  height: 100%; background: var(--brown-light); border-radius: 99px;
+
+  animation: loadBar 1.8s ease-in-out infinite;
+
+}
+
+@keyframes loadBar {
+
+  0% { width: 0%; margin-left: 0%; }
+
+  50% { width: 60%; margin-left: 20%; }
+
+  100% { width: 0%; margin-left: 100%; }
+
 }
 
 
@@ -1910,10 +1935,12 @@ input[type=checkbox] {
 
   </div>
 
-  <!-- Error state (muncul jika loading terlalu lama) -->
-  <div id="loading-error" style="display:none; margin-top:32px; text-align:center; color:rgba(255,255,255,0.5); font-size:13px; font-family:'DM Sans',sans-serif;">
-    <p style="margin-bottom:12px;">Koneksi bermasalah atau data kosong</p>
-    <button onclick="window.location.reload()" style="background:var(--brown-light);color:var(--ink);border:none;padding:10px 24px;border-radius:50px;font-weight:700;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;">↻ Coba Lagi</button>
+  <div id="loading-error" style="display:none;margin-top:28px;text-align:center;font-family:'DM Sans',sans-serif;">
+
+    <p style="color:rgba(255,255,255,0.5);font-size:13px;margin-bottom:14px;">Gagal memuat data.<br>Periksa koneksi internet kamu.</p>
+
+    <button onclick="window.location.reload()" style="background:var(--brown-light);color:var(--ink);border:none;padding:12px 28px;border-radius:50px;font-weight:700;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;">↻ Coba Lagi</button>
+
   </div>
 
 </div>
@@ -4570,141 +4597,4 @@ window.addEventListener('beforeinstallprompt', (e) => {
 
 
 
-document.getElementById('btn-install-pwa').addEventListener('click', async () => {
-
-  if (!deferredInstallPrompt) return;
-
-  deferredInstallPrompt.prompt();
-
-  const { outcome } = await deferredInstallPrompt.userChoice;
-
-  if (outcome === 'accepted') {
-
-    showToast('✅ Aplikasi berhasil diinstall!', 'success');
-
-    document.getElementById('install-banner').classList.remove('show');
-
-  }
-
-  deferredInstallPrompt = null;
-
-});
-
-
-
-window.addEventListener('appinstalled', () => {
-
-  document.getElementById('install-banner').classList.remove('show');
-
-  showToast('🎉 Hana Memoria sudah diinstall!', 'success');
-
-});
-
-
-
-function dismissInstall() {
-
-  document.getElementById('install-banner').classList.remove('show');
-
-  localStorage.setItem('pwa-install-dismissed', '1');
-
-}
-
-
-
-/* ===== KEYBOARD SHORTCUTS ===== */
-
-document.addEventListener('keydown', e => {
-
-  if (e.key === 'Escape') {
-
-    tutupDetail();
-
-    tutupModalOrientasi();
-
-    tutupNotifDropdown();
-
-    closeSidebar();
-
-  }
-
-  if (e.key === 'r' && (e.ctrlKey || e.metaKey) && e.shiftKey) {
-
-    e.preventDefault(); refreshData();
-
-  }
-
-});
-
-
-
-/* ===== SERVICE WORKER ===== */
-
-if ('serviceWorker' in navigator) {
-
-  // Register a minimal service worker inline
-
-  const swCode = `
-
-    const CACHE = 'hana-memoria-v1';
-
-    self.addEventListener('install', e => {
-
-      e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])));
-
-      self.skipWaiting();
-
-    });
-
-    self.addEventListener('activate', e => {
-
-      e.waitUntil(clients.claim());
-
-    });
-
-    self.addEventListener('fetch', e => {
-
-      if (e.request.method !== 'GET') return;
-
-      e.respondWith(
-
-        fetch(e.request).catch(() => caches.match(e.request))
-
-      );
-
-    });
-
-    self.addEventListener('push', e => {
-
-      const data = e.data ? e.data.json() : { title: 'Hana Memoria', body: 'Ada pesanan baru!' };
-
-      e.waitUntil(self.registration.showNotification(data.title, {
-
-        body: data.body,
-
-        icon: 'https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png'
-
-      }));
-
-    });
-
-  `;
-
-  const swBlob = new Blob([swCode], { type: 'application/javascript' });
-
-  const swUrl = URL.createObjectURL(swBlob);
-
-  navigator.serviceWorker.register(swUrl).catch(() => {});
-
-}
-
-
-
-/* ===== INIT ===== */
-
-document.addEventListener('DOMContentLoaded', async () => {
-
-  requestNotifPermission();
-
-  // Paksa hide loading maksimal 10 detik (jaga-jaga kalau fetch hang)
-  const loadingTime
+document.getElementById('btn-install-pwa').addEventListener('click', async ()
