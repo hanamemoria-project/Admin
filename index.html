@@ -124,7 +124,11 @@ body {
 
   position: fixed;
 
-  inset: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
+
+  width: 100vw;
+
+  height: 100vh;
 
   background: var(--ink);
 
@@ -140,9 +144,51 @@ body {
 
   transition: opacity 0.6s ease, visibility 0.6s ease;
 
+  overflow: hidden;
+
 }
 
-#loading-screen.fade-out { opacity: 0; visibility: hidden; }
+#loading-screen.fade-out { opacity: 0; visibility: hidden; }
+
+
+
+.loading-progress {
+
+  width: 160px;
+
+  height: 3px;
+
+  background: rgba(255,255,255,0.1);
+
+  border-radius: 99px;
+
+  overflow: hidden;
+
+  margin-top: 20px;
+
+}
+
+.loading-progress-bar {
+
+  height: 100%;
+
+  background: var(--brown-light);
+
+  border-radius: 99px;
+
+  animation: loadBar 1.8s ease-in-out infinite;
+
+}
+
+@keyframes loadBar {
+
+  0%   { width: 0%;   margin-left: 0%; }
+
+  50%  { width: 60%;  margin-left: 20%; }
+
+  100% { width: 0%;   margin-left: 100%; }
+
+}
 
 
 
@@ -265,46 +311,6 @@ body {
   0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
 
   40% { opacity: 1; transform: scale(1.2); }
-
-}
-
-
-
-.loading-progress {
-
-  width: 160px;
-
-  height: 3px;
-
-  background: rgba(255,255,255,0.1);
-
-  border-radius: 99px;
-
-  overflow: hidden;
-
-  margin-top: 24px;
-
-}
-
-.loading-progress-bar {
-
-  height: 100%;
-
-  background: var(--brown-light);
-
-  border-radius: 99px;
-
-  animation: loadBar 1.8s ease-in-out infinite;
-
-}
-
-@keyframes loadBar {
-
-  0% { width: 0%; margin-left: 0; }
-
-  50% { width: 70%; margin-left: 15%; }
-
-  100% { width: 0%; margin-left: 100%; }
 
 }
 
@@ -1686,8 +1692,6 @@ input[type=checkbox] {
 
   #sidebar, #main > #topbar, #content, #modal-detail, #modal-orientasi,
 
-  #modal-keuangan, #bottom-nav,
-
   .overlay, .no-print, .print-toolbar, #loading-screen, #install-banner { display: none !important; }
 
   #main { margin-left: 0 !important; }
@@ -1743,36 +1747,6 @@ input[type=checkbox] {
   .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
 
   .notif-dropdown { width: 290px; }
-
-}
-
-
-
-/* ===== NOTIF DROPDOWN MOBILE FIX ===== */
-
-@media (max-width: 480px) {
-
-  .notif-dropdown {
-
-    position: fixed;
-
-    top: auto;
-
-    bottom: calc(70px + env(safe-area-inset-bottom));
-
-    left: 12px;
-
-    right: 12px;
-
-    width: auto;
-
-    max-height: 60vh;
-
-    border-radius: var(--radius);
-
-    z-index: 600;
-
-  }
 
 }
 
@@ -1898,62 +1872,6 @@ input[type=checkbox] {
 
 }
 
-
-
-/* ===== FAB CETAK (muncul saat ada yang dipilih) ===== */
-
-#fab-cetak {
-
-  display: none;
-
-  position: fixed;
-
-  bottom: calc(72px + env(safe-area-inset-bottom));
-
-  right: 16px;
-
-  z-index: 300;
-
-  background: var(--brown-dark);
-
-  color: white;
-
-  border: none;
-
-  border-radius: 50px;
-
-  padding: 14px 20px;
-
-  font-size: 14px;
-
-  font-weight: 700;
-
-  font-family: 'DM Sans', sans-serif;
-
-  cursor: pointer;
-
-  box-shadow: 0 6px 24px rgba(42,31,20,0.35);
-
-  display: none;
-
-  align-items: center;
-
-  gap: 8px;
-
-  animation: fabIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
-
-}
-
-@keyframes fabIn {
-
-  from { transform: scale(0.7) translateY(20px); opacity: 0; }
-
-  to   { transform: scale(1) translateY(0); opacity: 1; }
-
-}
-
-#fab-cetak.show { display: flex; }
-
 </style>
 
 </head>
@@ -1990,6 +1908,12 @@ input[type=checkbox] {
 
     </div>
 
+  </div>
+
+  <!-- Error state (muncul jika loading terlalu lama) -->
+  <div id="loading-error" style="display:none; margin-top:32px; text-align:center; color:rgba(255,255,255,0.5); font-size:13px; font-family:'DM Sans',sans-serif;">
+    <p style="margin-bottom:12px;">Koneksi bermasalah atau data kosong</p>
+    <button onclick="window.location.reload()" style="background:var(--brown-light);color:var(--ink);border:none;padding:10px 24px;border-radius:50px;font-weight:700;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;">↻ Coba Lagi</button>
   </div>
 
 </div>
@@ -2465,12 +2389,6 @@ input[type=checkbox] {
 
 
 
-<!-- ===== FAB CETAK ===== -->
-
-<button id="fab-cetak" onclick="cetakMassal()">🖨️ Cetak (<span id="fab-count">0</span>)</button>
-
-
-
 <!-- ===== BOTTOM NAV (mobile) ===== -->
 
 <nav id="bottom-nav">
@@ -3638,16 +3556,6 @@ function updateSelectedBadge() {
 
   badge.className = 'selected-badge' + (count > 0 ? ' show' : '');
 
-  // Update FAB cetak
-  const fab = document.getElementById('fab-cetak');
-  const fabCount = document.getElementById('fab-count');
-  if (count > 0) {
-    fabCount.textContent = count;
-    fab.classList.add('show');
-  } else {
-    fab.classList.remove('show');
-  }
-
   document.querySelectorAll('.order-row').forEach(tr => {
 
     const cb = tr.querySelector('.check-pesanan');
@@ -3664,19 +3572,15 @@ function updateSelectedBadge() {
 
 function buatDiagram(pending, paid, proses, selesai, mindar) {
 
-  if (typeof Chart === 'undefined') {
+  try {
 
-    setTimeout(() => buatDiagram(pending, paid, proses, selesai, mindar), 500);
+    if (typeof Chart === 'undefined') return;
 
-    return;
+    const ctx = document.getElementById('grafikStatus').getContext('2d');
 
-  }
+    if (grafikVisual) grafikVisual.destroy();
 
-  const ctx = document.getElementById('grafikStatus').getContext('2d');
-
-  if (grafikVisual) { grafikVisual.destroy(); grafikVisual = null; }
-
-  grafikVisual = new Chart(ctx, {
+    grafikVisual = new Chart(ctx, {
 
       type: 'doughnut',
 
@@ -3715,6 +3619,8 @@ function buatDiagram(pending, paid, proses, selesai, mindar) {
       }
 
     });
+
+  } catch(e) {}
 
 }
 
@@ -4748,4 +4654,57 @@ if ('serviceWorker' in navigator) {
 
       self.skipWaiting();
 
- 
+    });
+
+    self.addEventListener('activate', e => {
+
+      e.waitUntil(clients.claim());
+
+    });
+
+    self.addEventListener('fetch', e => {
+
+      if (e.request.method !== 'GET') return;
+
+      e.respondWith(
+
+        fetch(e.request).catch(() => caches.match(e.request))
+
+      );
+
+    });
+
+    self.addEventListener('push', e => {
+
+      const data = e.data ? e.data.json() : { title: 'Hana Memoria', body: 'Ada pesanan baru!' };
+
+      e.waitUntil(self.registration.showNotification(data.title, {
+
+        body: data.body,
+
+        icon: 'https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png'
+
+      }));
+
+    });
+
+  `;
+
+  const swBlob = new Blob([swCode], { type: 'application/javascript' });
+
+  const swUrl = URL.createObjectURL(swBlob);
+
+  navigator.serviceWorker.register(swUrl).catch(() => {});
+
+}
+
+
+
+/* ===== INIT ===== */
+
+document.addEventListener('DOMContentLoaded', async () => {
+
+  requestNotifPermission();
+
+  // Paksa hide loading maksimal 10 detik (jaga-jaga kalau fetch hang)
+  const loadingTime
