@@ -1704,11 +1704,11 @@ input[type=checkbox] {
 
   flex-wrap: wrap;
 
-  gap: 32px 24px;
+  gap: 20px 16px;
 
   padding: 24px;
 
-  justify-content: center;
+  justify-content: flex-start;
 
   box-sizing: border-box;
 
@@ -1716,7 +1716,7 @@ input[type=checkbox] {
 
 .item-cetak {
 
-  width: 220px;
+  width: 260px;
 
   flex-shrink: 0;
 
@@ -1746,11 +1746,11 @@ input[type=checkbox] {
 
   #area-cetak { display: block !important; width: 100% !important; }
 
-  .grid-cetak { padding: 0 !important; gap: 28px 20px !important; }
+  .grid-cetak { padding: 0 !important; gap: 16px 12px !important; justify-content: flex-start !important; }
 
-  .item-cetak { width: 210px !important; }
+  .item-cetak { width: 250px !important; }
 
-  .item-cetak.landscape-mode { width: 185px !important; }
+  .item-cetak.landscape-mode { width: 220px !important; }
 
 }
 
@@ -2620,44 +2620,44 @@ input[type=checkbox] {
 
 
 
-<div id="modal-keuangan">
-  <div class="keu-modal">
-    <div class="keu-modal-header">
-      <h2 id="keu-modal-title">💰 Tambah Transaksi</h2>
+<div class="overlay" id="modal-keuangan">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <div><h2 id="keu-modal-title">💰 Tambah Transaksi</h2></div>
       <button class="modal-close" onclick="tutupModalKeuangan()">✕</button>
     </div>
-    <div class="keu-modal-body">
+    <div class="modal-body">
       <input type="hidden" id="keu-edit-id">
-      <div class="keu-field">
+      <div class="info-row">
         <label>Jenis</label>
-        <select id="keu-jenis" onchange="updateKategoriOptions()">
+        <select id="keu-jenis" onchange="updateKategoriOptions()" style="width:100%;padding:10px 12px;border-radius:var(--radius-xs);border:1px solid var(--sand);background:var(--cream);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink);">
           <option value="pemasukan">💚 Pemasukan</option>
           <option value="pengeluaran">❤️ Pengeluaran</option>
         </select>
       </div>
-      <div class="keu-field">
+      <div class="info-row">
         <label>Kategori</label>
-        <select id="keu-kategori">
+        <select id="keu-kategori" style="width:100%;padding:10px 12px;border-radius:var(--radius-xs);border:1px solid var(--sand);background:var(--cream);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink);">
           <option value="penjualan">Penjualan</option>
           <option value="lain-lain">Lain-lain</option>
         </select>
       </div>
-      <div class="keu-field">
+      <div class="info-row">
         <label>Nominal (Rp)</label>
-        <input type="number" id="keu-nominal" placeholder="Contoh: 85000" min="0">
+        <input type="number" id="keu-nominal" placeholder="Contoh: 85000" min="0" style="width:100%;padding:10px 12px;border-radius:var(--radius-xs);border:1px solid var(--sand);background:var(--cream);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink);">
       </div>
-      <div class="keu-field">
+      <div class="info-row">
         <label>Tanggal</label>
-        <input type="date" id="keu-tanggal">
+        <input type="date" id="keu-tanggal" style="width:100%;padding:10px 12px;border-radius:var(--radius-xs);border:1px solid var(--sand);background:var(--cream);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink);">
       </div>
-      <div class="keu-field">
+      <div class="info-row">
         <label>Keterangan (opsional)</label>
-        <textarea id="keu-keterangan" placeholder="Misal: Pesanan Gantungan Kunci x2"></textarea>
+        <textarea id="keu-keterangan" placeholder="Misal: Pesanan Gantungan Kunci x2" style="width:100%;padding:10px 12px;border-radius:var(--radius-xs);border:1px solid var(--sand);background:var(--cream);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink);resize:vertical;min-height:72px;"></textarea>
       </div>
-    </div>
-    <div class="keu-modal-footer">
-      <button class="btn btn-secondary" onclick="tutupModalKeuangan()">Batal</button>
-      <button class="btn btn-primary" onclick="simpanTransaksi()">💾 Simpan</button>
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button class="btn btn-secondary" style="flex:1;" onclick="tutupModalKeuangan()">Batal</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="simpanTransaksi()">💾 Simpan</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2863,14 +2863,18 @@ function closeSidebar() {
 /* ===== SECTION SWITCHING ===== */
 
 function showSection(s, el) {
+  // 'orders' maps to dashboard section
+  const sectionId = (s === 'orders') ? 'dashboard' : s;
+
   // Hide all sections
-  document.querySelectorAll('#section-dashboard, #section-keuangan').forEach(sec => {
-    sec.style.display = 'none';
+  ['dashboard', 'keuangan'].forEach(name => {
+    const sec = document.getElementById('section-' + name);
+    if (sec) sec.style.display = 'none';
   });
 
   // Show target section
-  const target = document.getElementById('section-' + s);
-  if (target) target.style.display = '';
+  const target = document.getElementById('section-' + sectionId);
+  if (target) target.style.display = 'block';
 
   // Update nav active states
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
@@ -2878,16 +2882,18 @@ function showSection(s, el) {
   if (el) el.classList.add('active');
 
   // Update topbar title
-  const titles = { dashboard: 'Command Center', keuangan: 'Keuangan' };
+  const titles = { dashboard: 'Command Center', orders: 'Pesanan', keuangan: 'Keuangan' };
   const h1 = document.querySelector('#topbar .topbar-left h1');
   if (h1 && titles[s]) h1.textContent = titles[s];
 
   closeSidebar();
 }
 
-// Init: hide keuangan on load
+// Init: show dashboard, hide keuangan
 document.addEventListener('DOMContentLoaded', function() {
+  const dash = document.getElementById('section-dashboard');
   const keu = document.getElementById('section-keuangan');
+  if (dash) dash.style.display = 'block';
   if (keu) keu.style.display = 'none';
 });
 
@@ -4212,7 +4218,7 @@ async function jalankanCetak(orientasi) {
 
 
 
-  const lebarItem = orientasi === 'landscape' ? '185px' : '210px';
+  const lebarItem = orientasi === 'landscape' ? '220px' : '260px';
 
   const grid = document.getElementById('grid-cetak');
 
