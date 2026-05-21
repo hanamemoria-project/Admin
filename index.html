@@ -270,6 +270,46 @@ body {
 
 
 
+.loading-progress {
+
+  width: 160px;
+
+  height: 3px;
+
+  background: rgba(255,255,255,0.1);
+
+  border-radius: 99px;
+
+  overflow: hidden;
+
+  margin-top: 24px;
+
+}
+
+.loading-progress-bar {
+
+  height: 100%;
+
+  background: var(--brown-light);
+
+  border-radius: 99px;
+
+  animation: loadBar 1.8s ease-in-out infinite;
+
+}
+
+@keyframes loadBar {
+
+  0% { width: 0%; margin-left: 0; }
+
+  50% { width: 70%; margin-left: 15%; }
+
+  100% { width: 0%; margin-left: 100%; }
+
+}
+
+
+
 /* ===== SIDEBAR ===== */
 
 #sidebar {
@@ -1646,6 +1686,8 @@ input[type=checkbox] {
 
   #sidebar, #main > #topbar, #content, #modal-detail, #modal-orientasi,
 
+  #modal-keuangan, #bottom-nav,
+
   .overlay, .no-print, .print-toolbar, #loading-screen, #install-banner { display: none !important; }
 
   #main { margin-left: 0 !important; }
@@ -1701,6 +1743,36 @@ input[type=checkbox] {
   .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
 
   .notif-dropdown { width: 290px; }
+
+}
+
+
+
+/* ===== NOTIF DROPDOWN MOBILE FIX ===== */
+
+@media (max-width: 480px) {
+
+  .notif-dropdown {
+
+    position: fixed;
+
+    top: auto;
+
+    bottom: calc(70px + env(safe-area-inset-bottom));
+
+    left: 12px;
+
+    right: 12px;
+
+    width: auto;
+
+    max-height: 60vh;
+
+    border-radius: var(--radius);
+
+    z-index: 600;
+
+  }
 
 }
 
@@ -1826,6 +1898,62 @@ input[type=checkbox] {
 
 }
 
+
+
+/* ===== FAB CETAK (muncul saat ada yang dipilih) ===== */
+
+#fab-cetak {
+
+  display: none;
+
+  position: fixed;
+
+  bottom: calc(72px + env(safe-area-inset-bottom));
+
+  right: 16px;
+
+  z-index: 300;
+
+  background: var(--brown-dark);
+
+  color: white;
+
+  border: none;
+
+  border-radius: 50px;
+
+  padding: 14px 20px;
+
+  font-size: 14px;
+
+  font-weight: 700;
+
+  font-family: 'DM Sans', sans-serif;
+
+  cursor: pointer;
+
+  box-shadow: 0 6px 24px rgba(42,31,20,0.35);
+
+  display: none;
+
+  align-items: center;
+
+  gap: 8px;
+
+  animation: fabIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+
+}
+
+@keyframes fabIn {
+
+  from { transform: scale(0.7) translateY(20px); opacity: 0; }
+
+  to   { transform: scale(1) translateY(0); opacity: 1; }
+
+}
+
+#fab-cetak.show { display: flex; }
+
 </style>
 
 </head>
@@ -1857,6 +1985,8 @@ input[type=checkbox] {
         <span></span><span></span><span></span>
 
       </div>
+
+      <div class="loading-progress"><div class="loading-progress-bar"></div></div>
 
     </div>
 
@@ -2335,6 +2465,12 @@ input[type=checkbox] {
 
 
 
+<!-- ===== FAB CETAK ===== -->
+
+<button id="fab-cetak" onclick="cetakMassal()">🖨️ Cetak (<span id="fab-count">0</span>)</button>
+
+
+
 <!-- ===== BOTTOM NAV (mobile) ===== -->
 
 <nav id="bottom-nav">
@@ -3502,6 +3638,16 @@ function updateSelectedBadge() {
 
   badge.className = 'selected-badge' + (count > 0 ? ' show' : '');
 
+  // Update FAB cetak
+  const fab = document.getElementById('fab-cetak');
+  const fabCount = document.getElementById('fab-count');
+  if (count > 0) {
+    fabCount.textContent = count;
+    fab.classList.add('show');
+  } else {
+    fab.classList.remove('show');
+  }
+
   document.querySelectorAll('.order-row').forEach(tr => {
 
     const cb = tr.querySelector('.check-pesanan');
@@ -4590,51 +4736,16 @@ document.addEventListener('keydown', e => {
 
 if ('serviceWorker' in navigator) {
 
-  navigator.serviceWorker.register('./sw.js').then(reg => {
+  // Register a minimal service worker inline
 
-    console.log('SW registered:', reg.scope);
+  const swCode = `
 
-  }).catch(err => {
+    const CACHE = 'hana-memoria-v1';
 
-    console.warn('SW gagal register:', err);
+    self.addEventListener('install', e => {
 
-  });
+      e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])));
 
-}
+      self.skipWaiting();
 
-
-
-/* ===== INIT ===== */
-
-document.addEventListener('DOMContentLoaded', async () => {
-
-  // Show loading screen, then hide after data loads
-
-  requestNotifPermission();
-
-
-
-  try {
-
-    await ambilDataPesanan(false);
-
-  } finally {
-
-    setTimeout(hideLoading, 800);
-
-  }
-
-
-
-  // Auto-refresh every 60s and detect new orders
-
-  setInterval(() => ambilDataPesanan(true), 60000);
-
-});
-
-</script>
-
-</body>
-
-</html>
-
+ 
