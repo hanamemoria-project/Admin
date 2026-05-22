@@ -1100,6 +1100,50 @@ body {
 .keu-toolbar { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; justify-content: space-between; margin-bottom: 14px; }
 .keu-toolbar-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; }
 
+/* ===== KEUANGAN LAYOUT: FIXED TOP + SCROLLABLE TABLE ===== */
+/* Bagian atas keuangan (stats + charts): terkunci, tidak bisa scroll horizontal */
+.keu-fixed-top {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* Kartu tabel transaksi: hanya tabel yg bisa scroll horizontal */
+.keu-transaksi-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 16px;
+  width: 100%;
+  overflow: hidden; /* kartu itu sendiri tidak scroll */
+}
+
+/* Toolbar (filter + tambah) di atas tabel: tidak scroll, terkunci */
+.keu-toolbar-sticky {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background: var(--white);
+  padding-bottom: 14px;
+  /* Tidak ada overflow-x, jadi toolbar wrap ke bawah alih-alih scroll */
+}
+
+/* Wrapper tabel: HANYA ini yang scroll horizontal */
+.keu-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--cream2);
+}
+
+/* Pastikan tabel punya lebar minimum agar tidak gepeng */
+.keu-table {
+  min-width: 560px;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
 
 
 .search-wrap { position: relative; }
@@ -2338,6 +2382,7 @@ input[type=checkbox] {
 
   </div><div id="section-keuangan">
 
+    <div class="keu-fixed-top">
     <div class="keu-stats-grid">
       <div class="keu-stat income">
         <div class="keu-label">💚 Pemasukan Bulan Ini</div>
@@ -2410,9 +2455,12 @@ input[type=checkbox] {
           <div id="prod-stat-f12-pct" style="font-size:11px;color:var(--ink-muted);margin-top:2px;">dari total pesanan</div>
         </div>
       </div>
-    </div>
+    </div><!-- /.keu-row produk -->
+
+    </div><!-- /.keu-fixed-top -->
 
     <div class="keu-transaksi-card">
+      <div class="keu-toolbar-sticky">
       <div class="keu-toolbar">
         <div class="keu-toolbar-left">
           <div class="search-wrap" style="flex:1;min-width:160px;max-width:260px;">
@@ -2447,6 +2495,7 @@ input[type=checkbox] {
         </div>
         <button class="btn btn-primary btn-sm" onclick="bukaModalKeuangan()">+ Tambah Transaksi</button>
       </div>
+      </div><!-- /.keu-toolbar-sticky -->
       <div class="keu-table-wrap">
         <table class="keu-table">
           <thead><tr>
