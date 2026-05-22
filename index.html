@@ -2949,6 +2949,17 @@ const LOGO_URL     = 'https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_H
 const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+/* ===== AUTH HELPERS ===== */
+async function getAuthHeaders(extra = {}) {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  const token = session ? session.access_token : SUPABASE_KEY;
+  return {
+    'apikey': SUPABASE_KEY,
+    'Authorization': `Bearer ${token}`,
+    ...extra
+  };
+}
+
 /* ===== AUTH FUNCTIONS ===== */
 async function cekLogin() {
   try {
@@ -3319,7 +3330,7 @@ async function ambilDataPesanan(isRefresh = false) {
 
     const r = await fetch(`${SUPABASE_URL}/rest/v1/Pesanan?order=created_at.desc`, {
 
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      headers: await getAuthHeaders()
 
     });
 
@@ -3403,7 +3414,7 @@ async function perbaruiStatus(id, status) {
 
       method: 'PATCH',
 
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      headers: await getAuthHeaders({'Content-Type': 'application/json', 'Prefer': 'return=minimal'}),
 
       body: JSON.stringify({ status_pesanan: status })
 
@@ -4381,7 +4392,7 @@ async function hapusPesanan(id) {
 
       method: 'DELETE',
 
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }
+      headers: await getAuthHeaders({'Content-Type': 'application/json', 'Prefer': 'return=minimal'})
 
     });
 
@@ -4419,7 +4430,7 @@ async function hapusMassal() {
 
       method: 'DELETE',
 
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }
+      headers: await getAuthHeaders({'Content-Type': 'application/json', 'Prefer': 'return=minimal'})
 
     });
 
@@ -4612,7 +4623,7 @@ function rupiahFormat(n) {
 async function ambilDataKeuangan() {
   try {
     const r = await fetch(`${SUPABASE_URL}/rest/v1/Keuangan?order=tanggal.desc,created_at.desc`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      headers: await getAuthHeaders()
     });
     if (!r.ok) throw new Error();
     dataKeuangan = await r.json();
@@ -4902,13 +4913,13 @@ async function simpanTransaksi() {
     if (editId) {
       r = await fetch(`${SUPABASE_URL}/rest/v1/Keuangan?id=eq.${editId}`, {
         method: 'PATCH',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        headers: await getAuthHeaders({'Content-Type': 'application/json', 'Prefer': 'return=minimal'}),
         body: JSON.stringify(body)
       });
     } else {
       r = await fetch(`${SUPABASE_URL}/rest/v1/Keuangan`, {
         method: 'POST',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        headers: await getAuthHeaders({'Content-Type': 'application/json', 'Prefer': 'return=minimal'}),
         body: JSON.stringify(body)
       });
     }
@@ -4926,7 +4937,7 @@ async function hapusTransaksi(id) {
   try {
     const r = await fetch(`${SUPABASE_URL}/rest/v1/Keuangan?id=eq.${id}`, {
       method: 'DELETE',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=minimal' }
+      headers: await getAuthHeaders({'Prefer': 'return=minimal'})
     });
     if (!r.ok) throw new Error();
     showToast('✅ Transaksi dihapus', 'success');
