@@ -27,6 +27,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
 (function(){
@@ -1968,11 +1969,111 @@ input[type=checkbox] {
 
 }
 
+
+/* ===== LOGIN SCREEN ===== */
+#login-screen {
+  position: fixed; inset: 0;
+  background: var(--ink);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999999;
+  padding: 16px;
+}
+#login-screen.show { display: flex; }
+.login-card {
+  background: var(--cream);
+  border-radius: 24px;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  animation: modalIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+.login-logo-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  margin-bottom: 32px;
+}
+.login-logo {
+  width: 72px; height: 72px; border-radius: 18px; background: white;
+  padding: 8px; box-shadow: var(--shadow-md);
+  display: flex; align-items: center; justify-content: center;
+}
+.login-logo img { width: 100%; height: 100%; object-fit: contain; }
+.login-brand { text-align: center; }
+.login-brand h2 { font-family: "DM Serif Display", serif; font-size: 22px; color: var(--ink); }
+.login-brand h2 em { color: var(--brown); font-style: italic; }
+.login-brand p { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-muted); margin-top: 4px; }
+.login-field { margin-bottom: 14px; }
+.login-field label { display: block; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-muted); font-weight: 700; margin-bottom: 6px; }
+.login-field input {
+  width: 100%; padding: 12px 14px;
+  border: 1.5px solid var(--sand);
+  border-radius: var(--radius-sm);
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px; color: var(--ink);
+  background: white;
+  outline: none;
+  transition: var(--transition);
+}
+.login-field input:focus { border-color: var(--brown-light); box-shadow: 0 0 0 3px rgba(196,168,130,0.15); }
+.login-error { font-size: 12px; color: var(--danger); min-height: 18px; margin-bottom: 12px; text-align: center; }
+.login-btn {
+  width: 100%; padding: 14px;
+  background: var(--brown-dark);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: "DM Sans", sans-serif;
+  font-size: 15px; font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.login-btn:hover:not(:disabled) { background: var(--brown); transform: translateY(-1px); }
+.login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-logout {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  color: rgba(255,255,255,0.45);
+  font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: var(--transition);
+  border: none; background: none; width: 100%; text-align: left;
+  margin-top: 4px;
+}
+.btn-logout:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.85); }
+
 </style>
 
 </head>
 
 <body>
+
+<!-- ===== LOGIN SCREEN ===== -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo-wrap">
+      <div class="login-logo">
+        <img src="https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png" alt="Logo" onerror="this.parentElement.innerHTML='🌸'">
+      </div>
+      <div class="login-brand">
+        <h2>Hana <em>Memoria</em></h2>
+        <p>Admin Dashboard</p>
+      </div>
+    </div>
+    <div class="login-field">
+      <label>Email Admin</label>
+      <input type="email" id="login-email" placeholder="admin@hanamemoria.com" autocomplete="username">
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-error" id="login-error"></div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Masuk ke Dashboard</button>
+  </div>
+</div>
+
 
 
 
@@ -2081,15 +2182,13 @@ input[type=checkbox] {
   </div>
 
   <div class="sidebar-footer">
-
     <div class="sidebar-time">
-
       Jam sekarang
-
       <span id="jam-sidebar">--:--</span>
-
     </div>
-
+    <button class="btn-logout" onclick="doLogout()" title="Keluar">
+      <span>🚪</span><span>Keluar</span>
+    </button>
   </div>
 
 </nav>
@@ -2841,14 +2940,65 @@ document.querySelector('link[rel="manifest"]').href = manifestUrl;
 /* ===== CONFIG ===== */
 
 const BASE_AR_URL  = 'https://hanamemoria-project.github.io/HMproject/';
-
 const WORKER_URL   = 'https://hm-backend.hanamemoria.workers.dev/';
-
 const SUPABASE_URL = 'https://ujnuvlrdxzqtfppbhioo.supabase.co';
-
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqbnV2bHJkeHpxdGZwcGJoaW9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNjU2OTYsImV4cCI6MjA5MDY0MTY5Nn0.slqPc8v7QZXxHzvMkOlXWAAYebX-sqUIiKZvA9DJkl0';
-
 const LOGO_URL     = 'https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png';
+
+/* Supabase Auth Client */
+const { createClient } = supabase;
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ===== AUTH FUNCTIONS ===== */
+async function cekLogin() {
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    return !!session;
+  } catch {
+    return false;
+  }
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const btn   = document.getElementById('login-btn');
+  const errEl = document.getElementById('login-error');
+
+  errEl.textContent = '';
+  if (!email || !pass) { errEl.textContent = '⚠️ Isi email dan password terlebih dahulu.'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Masuk...';
+
+  try {
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
+    document.getElementById('login-screen').classList.remove('show');
+    await muatDashboard();
+  } catch (e) {
+    errEl.textContent = '⚠️ Email atau password salah.';
+    btn.disabled = false;
+    btn.textContent = 'Masuk ke Dashboard';
+  }
+}
+
+async function doLogout() {
+  await supabaseClient.auth.signOut();
+  location.reload();
+}
+
+async function muatDashboard() {
+  try {
+    await Promise.all([ambilDataPesanan(), ambilDataKeuangan()]);
+  } catch (e) {
+    console.error('Gagal memuat data', e);
+    showToast('⚠️ Gagal memuat data dari server', 'error');
+  } finally {
+    if (typeof window.__hideInstantLoading === 'function') window.__hideInstantLoading();
+    hideLoading();
+  }
+}
 
 
 
@@ -4822,18 +4972,15 @@ function dismissInstall() {
 
 // ===== INISIALISASI DATA AWAL =====
 window.onload = async () => {
-  try {
-    // Ambil data pesanan dan keuangan secara bersamaan
-    await Promise.all([ambilDataPesanan(), ambilDataKeuangan()]);
-  } catch (error) {
-    console.error("Gagal memuat data", error);
-  } finally {
-    // Hapus overlay instant dan loading utama
-    if (typeof window.__hideInstantLoading === 'function') {
-      window.__hideInstantLoading();
-    }
+  const sudahLogin = await cekLogin();
+  if (!sudahLogin) {
+    // Tampilkan login screen, sembunyikan loading
+    if (typeof window.__hideInstantLoading === 'function') window.__hideInstantLoading();
     hideLoading();
+    document.getElementById('login-screen').classList.add('show');
+    return;
   }
+  await muatDashboard();
 };
 </script>
 </body>
