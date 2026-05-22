@@ -1096,6 +1096,10 @@ body {
 
 .toolbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
+/* Keuangan toolbar reuses same flex pattern */
+.keu-toolbar { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; justify-content: space-between; margin-bottom: 14px; }
+.keu-toolbar-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; }
+
 
 
 .search-wrap { position: relative; }
@@ -2128,8 +2132,6 @@ input[type=checkbox] {
 
       <button class="btn btn-danger" onclick="hapusMassal()">🗑️ <span>Hapus</span></button>
 
-      <button class="btn btn-primary" onclick="cetakMassal()">🖨️ <span>Cetak</span></button>
-
     </div>
 
   </header>
@@ -2376,9 +2378,45 @@ input[type=checkbox] {
       </div>
     </div>
 
+    <div class="keu-row" style="margin-bottom:20px;">
+      <div class="keu-chart-card">
+        <div class="card-header">
+          <span class="card-title">📊 Performa Produk</span>
+          <select class="filter-box" id="produk-chart-type" onchange="buatGrafikProduk()" style="font-size:12px;padding:6px 10px;">
+            <option value="bar">Bar Chart</option>
+            <option value="doughnut">Pie / Donut</option>
+          </select>
+        </div>
+        <div class="keu-chart-body">
+          <canvas id="grafikProduk" height="220"></canvas>
+        </div>
+      </div>
+      <div class="keu-chart-card" style="display:flex;flex-direction:column;gap:12px;justify-content:center;">
+        <div style="background:var(--cream2);border-radius:var(--radius);padding:16px;">
+          <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-muted);margin-bottom:6px;">🔑 Gantungan Kunci</div>
+          <div id="prod-stat-gk" style="font-size:22px;font-weight:700;color:var(--brown-dark);">–</div>
+          <div id="prod-stat-gk-pct" style="font-size:11px;color:var(--ink-muted);margin-top:2px;">dari total pesanan</div>
+        </div>
+        <div style="background:var(--cream2);border-radius:var(--radius);padding:16px;">
+          <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-muted);margin-bottom:6px;">🖼️ Figura</div>
+          <div id="prod-stat-fig" style="font-size:22px;font-weight:700;color:var(--brown-dark);">–</div>
+          <div id="prod-stat-fig-pct" style="font-size:11px;color:var(--ink-muted);margin-top:2px;">dari total pesanan</div>
+        </div>
+        <div style="background:var(--cream2);border-radius:var(--radius);padding:16px;">
+          <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-muted);margin-bottom:6px;">📅 Frame 12 Bulan</div>
+          <div id="prod-stat-f12" style="font-size:22px;font-weight:700;color:var(--brown-dark);">–</div>
+          <div id="prod-stat-f12-pct" style="font-size:11px;color:var(--ink-muted);margin-top:2px;">dari total pesanan</div>
+        </div>
+      </div>
+    </div>
+
     <div class="keu-transaksi-card">
       <div class="keu-toolbar">
         <div class="keu-toolbar-left">
+          <div class="search-wrap" style="flex:1;min-width:160px;max-width:260px;">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="keu-search" placeholder="Cari keterangan, kategori..." oninput="filterTransaksi()" style="width:100%;">
+          </div>
           <select class="filter-box" id="keu-filter-jenis" onchange="filterTransaksi()" style="font-size:12px;">
             <option value="Semua">Semua Jenis</option>
             <option value="pemasukan">💚 Pemasukan</option>
@@ -2393,6 +2431,17 @@ input[type=checkbox] {
             <option value="marketing">Marketing</option>
             <option value="lain-lain">Lain-lain</option>
           </select>
+          <select class="filter-box" id="keu-filter-waktu" onchange="filterTransaksi()" style="font-size:12px;">
+            <option value="semua">Semua Waktu</option>
+            <option value="bulan_ini">Bulan Ini</option>
+            <option value="minggu_ini">Minggu Ini</option>
+            <option value="kustom">Rentang Kustom...</option>
+          </select>
+          <div id="keu-date-range" style="display:none;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input type="date" id="keu-date-from" onchange="filterTransaksi()" style="padding:6px 8px;border-radius:var(--radius-xs);border:1px solid var(--sand);background:var(--cream);font-size:12px;color:var(--ink);">
+            <span style="font-size:11px;color:var(--ink-muted);">s/d</span>
+            <input type="date" id="keu-date-to" onchange="filterTransaksi()" style="padding:6px 8px;border-radius:var(--radius-xs);border:1px solid var(--sand);background:var(--cream);font-size:12px;color:var(--ink);">
+          </div>
         </div>
         <button class="btn btn-primary btn-sm" onclick="bukaModalKeuangan()">+ Tambah Transaksi</button>
       </div>
@@ -3104,6 +3153,8 @@ async function ambilDataPesanan(isRefresh = false) {
     renderTabel();
 
     updateTopbarSub();
+
+    if (typeof buatGrafikProduk === 'function') buatGrafikProduk();
 
   } catch {
 
@@ -4393,6 +4444,72 @@ function renderKeuangan() {
 
   buatGrafikKeuangan();
   buatGrafikKategori();
+  buatGrafikProduk();
+}
+
+/* ===== GRAFIK PRODUK ===== */
+let grafikProduk = null;
+
+function buatGrafikProduk() {
+  const type = document.getElementById('produk-chart-type') ? document.getElementById('produk-chart-type').value : 'bar';
+  const produkMap = { 'Gantungan Kunci': 0, 'Figura': 0, 'Frame 12 Bulan': 0 };
+  dataPesanan.forEach(p => {
+    if (p.jenis_pesanan && produkMap.hasOwnProperty(p.jenis_pesanan)) {
+      produkMap[p.jenis_pesanan] += parseInt(p.jumlah) || 1;
+    }
+  });
+  const labels = Object.keys(produkMap);
+  const vals   = Object.values(produkMap);
+  const total  = vals.reduce((a, b) => a + b, 0) || 1;
+
+  // Update stat cards
+  const gk  = produkMap['Gantungan Kunci'];
+  const fig = produkMap['Figura'];
+  const f12 = produkMap['Frame 12 Bulan'];
+  if (document.getElementById('prod-stat-gk'))  document.getElementById('prod-stat-gk').textContent  = gk + ' pcs';
+  if (document.getElementById('prod-stat-fig')) document.getElementById('prod-stat-fig').textContent = fig + ' pcs';
+  if (document.getElementById('prod-stat-f12')) document.getElementById('prod-stat-f12').textContent = f12 + ' pcs';
+  if (document.getElementById('prod-stat-gk-pct'))  document.getElementById('prod-stat-gk-pct').textContent  = Math.round(gk/total*100) + '% dari total pesanan';
+  if (document.getElementById('prod-stat-fig-pct')) document.getElementById('prod-stat-fig-pct').textContent = Math.round(fig/total*100) + '% dari total pesanan';
+  if (document.getElementById('prod-stat-f12-pct')) document.getElementById('prod-stat-f12-pct').textContent = Math.round(f12/total*100) + '% dari total pesanan';
+
+  // Soft elegant palette: rose gold, sage, sky
+  const softColors = ['#c9a884', '#98c4a5', '#8bb8cc'];
+  const softHover  = ['#b8946e', '#7aae8c', '#6aa0b5'];
+
+  const ctx = document.getElementById('grafikProduk').getContext('2d');
+  if (grafikProduk) grafikProduk.destroy();
+
+  if (type === 'doughnut') {
+    grafikProduk = new Chart(ctx, {
+      type: 'doughnut',
+      data: { labels, datasets: [{ data: vals, backgroundColor: softColors, hoverBackgroundColor: softHover, borderWidth: 0, hoverOffset: 6 }] },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '58%', plugins: { legend: { position: 'bottom', labels: { font: { size: 11, family: 'DM Sans' }, padding: 10, boxWidth: 12 } } } }
+    });
+  } else {
+    grafikProduk = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Jumlah Terjual (pcs)',
+          data: vals,
+          backgroundColor: softColors,
+          hoverBackgroundColor: softHover,
+          borderRadius: 8,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' } },
+          x: { ticks: { font: { size: 10 } }, grid: { display: false } }
+        }
+      }
+    });
+  }
 }
 
 function buatGrafikKeuangan() {
@@ -4423,8 +4540,8 @@ function buatGrafikKeuangan() {
     data: {
       labels,
       datasets: [
-        { label: 'Pemasukan', data: masukData, backgroundColor: '#7fa688', borderRadius: 6 },
-        { label: 'Pengeluaran', data: keluarData, backgroundColor: '#e8a598', borderRadius: 6 }
+        { label: 'Pemasukan', data: masukData, backgroundColor: '#98c4a5', borderRadius: 6 },
+        { label: 'Pengeluaran', data: keluarData, backgroundColor: '#e8b8b0', borderRadius: 6 }
       ]
     },
     options: {
@@ -4450,7 +4567,7 @@ function buatGrafikKategori() {
   });
   const labels = Object.keys(katMap);
   const vals   = Object.values(katMap);
-  const colors = ['#c9a84c','#e8a598','#7bb3c8','#7fa688','#d64040','#c4a882'];
+  const colors = ['#c9a884','#e8b8b0','#8bb8cc','#98c4a5','#e8d5a8','#b8a0c8'];
 
   const ctx = document.getElementById('grafikKategori').getContext('2d');
   if (grafikKategori) grafikKategori.destroy();
@@ -4468,11 +4585,31 @@ function buatGrafikKategori() {
 function renderTabelKeuangan() {
   const jenis = document.getElementById('keu-filter-jenis').value;
   const kat   = document.getElementById('keu-filter-kat').value;
+  const query = (document.getElementById('keu-search') ? document.getElementById('keu-search').value : '').toLowerCase().trim();
+  const waktu = document.getElementById('keu-filter-waktu') ? document.getElementById('keu-filter-waktu').value : 'semua';
   const tbody = document.getElementById('tabel-keuangan');
+
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfWeek  = new Date(now); startOfWeek.setDate(now.getDate() - now.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+  const dateFrom = document.getElementById('keu-date-from') ? document.getElementById('keu-date-from').value : '';
+  const dateTo   = document.getElementById('keu-date-to')   ? document.getElementById('keu-date-to').value   : '';
 
   let filtered = dataKeuangan.filter(t => {
     if (jenis !== 'Semua' && t.jenis !== jenis) return false;
-    if (kat !== 'Semua' && t.kategori !== kat) return false;
+    if (kat   !== 'Semua' && t.kategori !== kat) return false;
+    if (query) {
+      const hay = `${t.keterangan || ''} ${t.kategori || ''} ${t.jenis || ''}`.toLowerCase();
+      if (!hay.includes(query)) return false;
+    }
+    const td = new Date(t.tanggal);
+    if (waktu === 'bulan_ini' && td < startOfMonth) return false;
+    if (waktu === 'minggu_ini' && td < startOfWeek) return false;
+    if (waktu === 'kustom') {
+      if (dateFrom && td < new Date(dateFrom)) return false;
+      if (dateTo   && td > new Date(dateTo + 'T23:59:59')) return false;
+    }
     return true;
   });
 
@@ -4498,7 +4635,13 @@ function renderTabelKeuangan() {
   `).join('');
 }
 
-function filterTransaksi() { renderTabelKeuangan(); }
+function filterTransaksi() {
+  // Show/hide date range
+  const waktu = document.getElementById('keu-filter-waktu').value;
+  const dateRange = document.getElementById('keu-date-range');
+  if (dateRange) dateRange.style.display = waktu === 'kustom' ? 'flex' : 'none';
+  renderTabelKeuangan();
+}
 
 function updateKategoriOptions() {
   const jenis = document.getElementById('keu-jenis').value;
@@ -4584,9 +4727,10 @@ async function hapusTransaksi(id) {
     });
     if (!r.ok) throw new Error();
     showToast('✅ Transaksi dihapus', 'success');
+    // Remove from local array and re-render everything
     dataKeuangan = dataKeuangan.filter(x => x.id !== id);
     renderKeuangan();
-    renderTabelKeuangan();
+    filterTransaksi();
   } catch {
     showToast('⚠️ Gagal menghapus', 'error');
   }
