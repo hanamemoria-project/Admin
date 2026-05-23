@@ -80,14 +80,17 @@ async function doLogout() {
 
 async function muatDashboard() {
   try {
-    await Promise.all([ambilDataPesanan(), ambilDataKeuangan()]);
+    await ambilDataPesanan();
   } catch (e) {
-    console.error('Gagal memuat data', e);
-    showToast('⚠️ Gagal memuat data dari server', 'error');
-  } finally {
-    try { if (typeof window.__hideInstantLoading === 'function') window.__hideInstantLoading(); } catch(e) {}
-    try { hideLoading(); } catch(e) {}
+    console.error('Gagal memuat pesanan', e);
   }
+  try {
+    await ambilDataKeuangan();
+  } catch (e) {
+    console.error('Gagal memuat keuangan', e);
+  }
+  try { if (typeof window.__hideInstantLoading === 'function') window.__hideInstantLoading(); } catch(e) {}
+  try { hideLoading(); } catch(e) {}
 }
 
 /* Helper: build QR URL — SINGLE SOURCE OF TRUTH for all QR codes */

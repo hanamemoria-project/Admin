@@ -33,12 +33,11 @@
       'transition:opacity 0.5s ease',
       'font-family:sans-serif'
     ].join(';');
-    ov.innerHTML = '<img src="https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png" style="width:120px;height:120px;object-fit:contain;background:white;border-radius:24px;padding:12px;box-shadow:0 20px 60px rgba(0,0,0,0.5);margin-bottom:24px;" onerror="this.style.display=\'none\'"><div style="color:#fdf8f2;font-size:22px;font-weight:700;letter-spacing:0.5px;margin-bottom:4px;">Hana <em style=\'color:#c4a882;font-style:italic\'>Memoria</em></div><div style="color:#9e8776;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:20px;">Admin Dashboard</div><div style="width:140px;height:3px;background:rgba(255,255,255,0.1);border-radius:99px;overflow:hidden;"><div id="lov-bar" style="height:100%;background:#c4a882;border-radius:99px;animation:lovBar 1.8s ease-in-out infinite;"></div></div><div id="lov-error" style="display:none;margin-top:24px;text-align:center;"><p style="color:rgba(255,255,255,0.5);font-size:13px;margin-bottom:12px;">Gagal memuat. Periksa koneksi.</p><button onclick="location.reload()" style="background:#c4a882;color:#2a1f14;border:none;padding:10px 24px;border-radius:50px;font-weight:700;font-size:13px;cursor:pointer;">↻ Coba Lagi</button></div>';
+    ov.innerHTML = '<img src="https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png" style="width:140px;height:140px;object-fit:contain;background:white;border-radius:28px;padding:14px;box-shadow:0 0 0 1px rgba(196,168,130,0.3),0 20px 60px rgba(0,0,0,0.5);margin-bottom:28px;" onerror="this.style.display=\'none\'"><div style="color:#fdf8f2;font-family:serif;font-size:26px;font-weight:700;letter-spacing:0.5px;margin-bottom:6px;">Hana <em style=\'color:#c4a882;font-style:italic;\'>Memoria</em></div><div style="color:#9e8776;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:24px;">Admin Dashboard</div><div style="display:flex;gap:10px;"><span style="width:9px;height:9px;border-radius:50%;background:#c4a882;animation:ldot 1.4s ease-in-out infinite;"></span><span style="width:9px;height:9px;border-radius:50%;background:#c4a882;animation:ldot 1.4s ease-in-out 0.2s infinite;"></span><span style="width:9px;height:9px;border-radius:50%;background:#c4a882;animation:ldot 1.4s ease-in-out 0.4s infinite;"></span></div><div id="lov-error" style="display:none;margin-top:24px;text-align:center;"><p style="color:rgba(255,255,255,0.5);font-size:13px;margin-bottom:12px;">Gagal memuat. Periksa koneksi.</p><button onclick="location.reload()" style="background:#c4a882;color:#2a1f14;border:none;padding:10px 24px;border-radius:50px;font-weight:700;font-size:13px;cursor:pointer;">↻ Coba Lagi</button></div>';
     var style = document.createElement('style');
-    style.textContent = '@keyframes lovBar{0%{width:0%;margin-left:0%}50%{width:60%;margin-left:20%}100%{width:0%;margin-left:100%}}';
+    style.textContent = '@keyframes ldot{0%,80%,100%{opacity:0.3;transform:scale(0.8)}40%{opacity:1;transform:scale(1.3)}}';
     document.head.appendChild(style);
     document.addEventListener('DOMContentLoaded', function(){ document.body.appendChild(ov); });
-    // Fallback: jika DOMContentLoaded lambat, append ke html
     document.documentElement.appendChild(ov);
     window.__hideInstantLoading = function() {
       ov.style.opacity = '0';
@@ -90,7 +89,6 @@
       <div class="loading-dots">
         <span></span><span></span><span></span>
       </div>
-      <div class="loading-progress"><div class="loading-progress-bar"></div></div>
     </div>
   </div>
   <div id="loading-error" style="display:none;margin-top:28px;text-align:center;font-family:'DM Sans',sans-serif;">
