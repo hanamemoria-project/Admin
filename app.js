@@ -864,14 +864,24 @@ async function jalankanCetak(orientasi) {
 }
 
 /* ===== KEUANGAN ===== */
+// Pastikan variabel-variabel ini dideklarasikan di bagian atas 
+// sebelum fungsi-fungsi keuangan lainnya dipanggil:
+
 let dataKeuangan = [];
 let grafikKeuangan = null;
 let grafikKategori = null;
+let grafikProduk = null; // <--- INI ADALAH KUNCI PERBAIKANNYA
 
 function rupiahFormat(n) {
-  if (n === undefined || n === null || isNaN(n)) return 'Rp 0';
-  return 'Rp ' + Number(n).toLocaleString('id-ID');
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0
+  }).format(n);
 }
+
+// Setelah menambahkan variabel di atas, fungsi pemuat data keuangan Anda 
+// akan berjalan dengan lancar tanpa terhenti karena variabel tidak ditemukan.
 
 async function ambilDataKeuangan() {
   try {
