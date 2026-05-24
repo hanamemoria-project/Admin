@@ -182,6 +182,7 @@
   </header>
 
   <main id="content">
+  <!-- ===== DASHBOARD SECTION: Ringkasan & Grafik ===== -->
   <div id="section-dashboard">
     <div class="stats-grid" id="stats-grid">
       <div class="stat-card gold">
@@ -211,10 +212,12 @@
       </div>
     </div>
 
-    <div class="dashboard-row">
+    <!-- Grafik-grafik Dashboard -->
+    <div class="dashboard-charts-grid">
+      <!-- Grafik Donat Status -->
       <div class="card">
         <div class="card-header">
-          <span class="card-title">Status Overview</span>
+          <span class="card-title">🍩 Status Pesanan</span>
         </div>
         <div class="card-body">
           <div class="chart-wrap">
@@ -223,60 +226,107 @@
         </div>
       </div>
 
-      <div class="card" id="tabel-card">
-        <div class="toolbar">
-          <div class="toolbar-left">
-            <div class="search-wrap">
-              <span class="search-icon">🔍</span>
-              <input type="text" id="search-input" placeholder="Cari nama, ID, produk..." oninput="renderTabel()">
-            </div>
-            <select class="filter-box" id="filter-produk" onchange="renderTabel()">
-              <option value="Semua">Semua Produk</option>
-              <option value="Gantungan Kunci">🔑 Gantungan Kunci</option>
-              <option value="Figura">🖼️ Figura</option>
-              <option value="Frame 12 Bulan">📅 Frame 12 Bulan</option>
-            </select>
-            <select class="filter-box" id="filter-status" onchange="renderTabel()">
-              <option value="Semua">Semua Status</option>
-              <option value="pending_payment">Belum Bayar</option>
-              <option value="paid">Sudah Bayar</option>
-              <option value="processing">Diproses</option>
-              <option value="completed">Selesai</option>
-            </select>
-          </div>
-          <div class="toolbar-right">
-            <span id="total-label" style="font-size:12px;color:var(--ink-muted);"></span>
-            <select class="filter-box" id="per-page" onchange="currentPage=1;renderTabel()" style="width:auto;">
-              <option value="10">10 / hal</option>
-              <option value="25">25 / hal</option>
-              <option value="50">50 / hal</option>
-            </select>
+      <!-- Grafik Deadline Mendesak -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">⏰ Deadline Minggu Ini</span>
+        </div>
+        <div class="card-body">
+          <div class="chart-wrap">
+            <canvas id="grafikDeadline" height="200"></canvas>
           </div>
         </div>
+      </div>
 
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th style="width:36px;cursor:default;"><input type="checkbox" id="check-all" onchange="togglePilihSemua(this)"></th>
-                <th onclick="sortBy('id_pesanan')">ID Pesanan</th>
-                <th onclick="sortBy('nama_pelanggan')">Pelanggan</th>
-                <th onclick="sortBy('jenis_pesanan')">Produk</th>
-                <th onclick="sortBy('deadline')">Deadline</th>
-                <th onclick="sortBy('status_pesanan')">Status</th>
-                <th style="cursor:default;">Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="tabel-pesanan">
-              <tr><td colspan="7"><div class="empty-state"><div class="big">✨</div><p>Memuat data kenangan...</p></div></td></tr>
-            </tbody>
-          </table>
+      <!-- Grafik Produk Terpopuler -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📦 Produk Populer</span>
         </div>
+        <div class="card-body">
+          <div class="chart-wrap">
+            <canvas id="grafikProdukDash" height="200"></canvas>
+          </div>
+        </div>
+      </div>
 
-        <div class="pagination" id="pagination-bar">
-          <span id="paging-info" style="font-size:12px;"></span>
-          <div class="page-btns" id="page-btns"></div>
+      <!-- Pesanan Terbaru (ringkas) -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🕐 Pesanan Terbaru</span>
+          <button class="btn btn-ghost btn-sm" onclick="showSection('orders',document.querySelector('.nav-item:nth-child(2)'))">Lihat Semua →</button>
         </div>
+        <div class="card-body" style="padding:0;">
+          <div id="dash-recent-list" style="max-height:260px;overflow-y:auto;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PESANAN SECTION: Tabel + Filter Deadline ===== -->
+  <div id="section-orders" style="display:none;">
+    <div class="card" id="tabel-card">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="search-input" placeholder="Cari nama, ID, produk..." oninput="renderTabel()">
+          </div>
+          <select class="filter-box" id="filter-produk" onchange="renderTabel()">
+            <option value="Semua">Semua Produk</option>
+            <option value="Gantungan Kunci">🔑 Gantungan Kunci</option>
+            <option value="Figura">🖼️ Figura</option>
+            <option value="Frame 12 Bulan">📅 Frame 12 Bulan</option>
+          </select>
+          <select class="filter-box" id="filter-status" onchange="renderTabel()">
+            <option value="Semua">Semua Status</option>
+            <option value="pending_payment">Belum Bayar</option>
+            <option value="paid">Sudah Bayar</option>
+            <option value="processing">Diproses</option>
+            <option value="completed">Selesai</option>
+          </select>
+          <!-- Filter Deadline Baru -->
+          <select class="filter-box" id="filter-deadline" onchange="renderTabel()" title="Filter Deadline">
+            <option value="Semua">Semua Deadline</option>
+            <option value="terlambat">⚠️ Terlambat</option>
+            <option value="hari_ini">🔴 Hari Ini</option>
+            <option value="besok">🟠 Besok</option>
+            <option value="minggu_ini">🟡 Minggu Ini</option>
+            <option value="lebih">🟢 Lebih dari 7 hari</option>
+          </select>
+        </div>
+        <div class="toolbar-right">
+          <span id="total-label" style="font-size:12px;color:var(--ink-muted);"></span>
+          <select class="filter-box" id="per-page" onchange="currentPage=1;renderTabel()" style="width:auto;">
+            <option value="10">10 / hal</option>
+            <option value="25">25 / hal</option>
+            <option value="50">50 / hal</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:36px;cursor:default;"><input type="checkbox" id="check-all" onchange="togglePilihSemua(this)"></th>
+              <th onclick="sortBy('id_pesanan')">ID Pesanan</th>
+              <th onclick="sortBy('nama_pelanggan')">Pelanggan</th>
+              <th onclick="sortBy('jenis_pesanan')">Produk</th>
+              <th onclick="sortBy('deadline')">Deadline</th>
+              <th onclick="sortBy('status_pesanan')">Status</th>
+              <th style="cursor:default;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tabel-pesanan">
+            <tr><td colspan="7"><div class="empty-state"><div class="big">✨</div><p>Memuat data kenangan...</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination" id="pagination-bar">
+        <span id="paging-info" style="font-size:12px;"></span>
+        <div class="page-btns" id="page-btns"></div>
       </div>
     </div>
   </div><div id="section-keuangan">
@@ -427,6 +477,7 @@
     </button>
   </div>
 </nav>
+
 
 <div class="overlay" id="modal-detail">
   <div class="modal">

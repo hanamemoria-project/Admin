@@ -151,12 +151,11 @@ function closeSidebar() {
 
 /* ===== SECTION SWITCHING ===== */
 function showSection(s, el) {
-  const sectionId = (s === 'orders') ? 'dashboard' : s;
-  ['dashboard', 'keuangan'].forEach(name => {
+  ['dashboard', 'orders', 'keuangan'].forEach(name => {
     const sec = document.getElementById('section-' + name);
     if (sec) sec.style.display = 'none';
   });
-  const target = document.getElementById('section-' + sectionId);
+  const target = document.getElementById('section-' + s);
   if (target) target.style.display = 'block';
 
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
@@ -172,9 +171,11 @@ function showSection(s, el) {
 
 document.addEventListener('DOMContentLoaded', function() {
   const dash = document.getElementById('section-dashboard');
-  const keu = document.getElementById('section-keuangan');
+  const ord  = document.getElementById('section-orders');
+  const keu  = document.getElementById('section-keuangan');
   if (dash) dash.style.display = 'block';
-  if (keu) keu.style.display = 'none';
+  if (ord)  ord.style.display  = 'none';
+  if (keu)  keu.style.display  = 'none';
 });
 
 /* ===== NOTIFIKASI ===== */
@@ -326,11 +327,12 @@ function normaliseStatus(s) {
 function renderTabel() {
   if (!Array.isArray(dataPesanan)) return;
 
-  const query   = (document.getElementById('search-input').value || '').toLowerCase();
-  const produk  = document.getElementById('filter-produk').value;
-  const status  = document.getElementById('filter-status').value;
-  const perPage = parseInt(document.getElementById('per-page').value) || 10;
-  const now     = new Date();
+  const query    = (document.getElementById('search-input') ? document.getElementById('search-input').value : '').toLowerCase();
+  const produk   = document.getElementById('filter-produk') ? document.getElementById('filter-produk').value : 'Semua';
+  const status   = document.getElementById('filter-status') ? document.getElementById('filter-status').value : 'Semua';
+  const deadline = document.getElementById('filter-deadline') ? document.getElementById('filter-deadline').value : 'Semua';
+  const perPage  = parseInt(document.getElementById('per-page') ? document.getElementById('per-page').value : 10) || 10;
+  const now      = new Date();
 
   let counts = { pending_payment: 0, paid: 0, processing: 0, completed: 0, mindar: 0 };
 
@@ -342,13 +344,28 @@ function renderTabel() {
     else if (s === 'processing') counts.processing++;
     else if (s === 'completed') counts.completed++;
     if (mindar) counts.mindar++;
-    return { ...p, _status: s, _mindar: mindar };
+    // Calculate deadline days for every item
+    const tglDibuat = new Date(p.created_at);
+    const tglDeadline = new Date(tglDibuat);
+    tglDeadline.setDate(tglDeadline.getDate() + 3);
+    const sisaHari = Math.ceil((tglDeadline - now) / 86400000);
+    return { ...p, _status: s, _mindar: mindar, _sisaHari: sisaHari, _tglDeadline: tglDeadline };
   }).filter(p => {
     if (produk !== 'Semua' && p.jenis_pesanan !== produk) return false;
     if (status !== 'Semua' && p._status !== status) return false;
     if (query) {
       const hay = `${p.id_pesanan} ${p.nama_pelanggan} ${p.jenis_pesanan}`.toLowerCase();
       if (!hay.includes(query)) return false;
+    }
+    // Deadline filter
+    if (deadline !== 'Semua' && p._status !== 'completed') {
+      if (deadline === 'terlambat' && p._sisaHari >= 0) return false;
+      if (deadline === 'hari_ini' && p._sisaHari !== 0) return false;
+      if (deadline === 'besok' && p._sisaHari !== 1) return false;
+      if (deadline === 'minggu_ini' && (p._sisaHari < 0 || p._sisaHari > 7)) return false;
+      if (deadline === 'lebih' && p._sisaHari <= 7) return false;
+    } else if (deadline !== 'Semua' && p._status === 'completed') {
+      return false; // completed orders have no deadline concern
     }
     return true;
   });
@@ -370,6 +387,10 @@ function renderTabel() {
   document.getElementById('c-selesai').textContent  = counts.completed;
   document.getElementById('c-mindar').textContent   = counts.mindar;
   buatDiagram(counts.pending_payment, counts.paid, counts.processing, counts.completed, counts.mindar);
+  // Update dashboard-only charts
+  buatGrafikDeadline(dataPesanan);
+  buatGrafikProdukDash(dataPesanan);
+  renderDashRecent(dataPesanan);
 
   document.querySelectorAll('thead th').forEach(th => th.classList.remove('sort-asc', 'sort-desc'));
 
@@ -390,10 +411,8 @@ function renderTabel() {
     tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="big">🔍</div><p>Tidak ada pesanan ditemukan</p></div></td></tr>`;
   } else {
     page.forEach(p => {
-      const tglDibuat   = new Date(p.created_at);
-      const tglDeadline = new Date(tglDibuat);
-      tglDeadline.setDate(tglDeadline.getDate() + 3);
-      const sisaHari = Math.ceil((tglDeadline - now) / 86400000);
+      const tglDeadline = p._tglDeadline || (() => { const d = new Date(p.created_at); d.setDate(d.getDate()+3); return d; })();
+      const sisaHari = p._sisaHari !== undefined ? p._sisaHari : Math.ceil((tglDeadline - now) / 86400000);
 
       let teksDeadline, kelasDeadline;
       if (p._status === 'completed') { teksDeadline = '✨ Selesai'; kelasDeadline = 'deadline-ok'; }
@@ -544,6 +563,90 @@ function buatDiagram(pending, paid, proses, selesai, mindar) {
       }
     });
   } catch(e) {}
+}
+
+/* ===== GRAFIK DEADLINE (Dashboard) ===== */
+let grafikDeadlineChart = null;
+function buatGrafikDeadline(data) {
+  const el = document.getElementById('grafikDeadline');
+  if (!el || typeof Chart === 'undefined') return;
+  const now = new Date();
+  let terlambat = 0, hariIni = 0, besok = 0, mingguIni = 0, lebih = 0;
+  data.forEach(p => {
+    if (normaliseStatus(p.status_pesanan) === 'completed') return;
+    const d = new Date(p.created_at);
+    d.setDate(d.getDate() + 3);
+    const sisa = Math.ceil((d - now) / 86400000);
+    if (sisa < 0) terlambat++;
+    else if (sisa === 0) hariIni++;
+    else if (sisa === 1) besok++;
+    else if (sisa <= 7) mingguIni++;
+    else lebih++;
+  });
+  if (grafikDeadlineChart) grafikDeadlineChart.destroy();
+  grafikDeadlineChart = new Chart(el.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: ['Terlambat','Hari Ini','Besok','Minggu Ini','> 7 Hari'],
+      datasets: [{
+        data: [terlambat, hariIni, besok, mingguIni, lebih],
+        backgroundColor: ['#d64040','#e8a598','#c9a84c','#8bb8cc','#98c4a5'],
+        borderWidth: 0, borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10, family: 'DM Sans' } }, grid: { color: 'rgba(42,31,20,0.06)' } },
+        x: { ticks: { font: { size: 10, family: 'DM Sans' } }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+/* ===== GRAFIK PRODUK DASHBOARD ===== */
+let grafikProdukDashChart = null;
+function buatGrafikProdukDash(data) {
+  const el = document.getElementById('grafikProdukDash');
+  if (!el || typeof Chart === 'undefined') return;
+  const map = {};
+  data.forEach(p => { map[p.jenis_pesanan || 'Lainnya'] = (map[p.jenis_pesanan || 'Lainnya'] || 0) + 1; });
+  const labels = Object.keys(map);
+  const vals = Object.values(map);
+  if (grafikProdukDashChart) grafikProdukDashChart.destroy();
+  grafikProdukDashChart = new Chart(el.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data: vals, backgroundColor: ['#c9a884','#8bb8cc','#e8b8b0','#98c4a5'], borderWidth: 0, hoverOffset: 5 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '62%',
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 10, family: 'DM Sans' }, padding: 8, boxWidth: 10 } } }
+    }
+  });
+}
+
+/* ===== RENDER PESANAN TERBARU (Dashboard) ===== */
+function renderDashRecent(data) {
+  const el = document.getElementById('dash-recent-list');
+  if (!el) return;
+  const recent = [...data].sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).slice(0,6);
+  if (!recent.length) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink-muted);font-size:13px;">Belum ada pesanan</div>'; return; }
+  const statusLabels = { pending_payment:['⏳','status-pending'], paid:['💳','status-paid'], processing:['⚙️','status-processing'], completed:['✨','status-completed'] };
+  el.innerHTML = recent.map(p => {
+    const s = normaliseStatus(p.status_pesanan);
+    const [ico, cls] = statusLabels[s] || ['?',''];
+    const tgl = new Date(p.created_at).toLocaleDateString('id-ID',{day:'numeric',month:'short'});
+    return `<div onclick="bukaDetail('${p.id_pesanan}')" style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--sand);cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='var(--cream2)'" onmouseout="this.style.background=''">
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.nama_pelanggan||'–'}</div>
+        <div style="font-size:11px;color:var(--ink-muted);">${p.jenis_pesanan||'–'} · ${tgl}</div>
+      </div>
+      <span class="status-badge ${cls}" style="font-size:11px;padding:3px 8px;">${ico} ${s==='pending_payment'?'Belum Bayar':s==='paid'?'Sudah Bayar':s==='processing'?'Diproses':'Selesai'}</span>
+    </div>`;
+  }).join('');
 }
 
 function formatPhone(p) {
@@ -864,24 +967,14 @@ async function jalankanCetak(orientasi) {
 }
 
 /* ===== KEUANGAN ===== */
-// Pastikan variabel-variabel ini dideklarasikan di bagian atas 
-// sebelum fungsi-fungsi keuangan lainnya dipanggil:
-
 let dataKeuangan = [];
 let grafikKeuangan = null;
 let grafikKategori = null;
-let grafikProduk = null; // <--- INI ADALAH KUNCI PERBAIKANNYA
 
 function rupiahFormat(n) {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0
-  }).format(n);
+  if (n === undefined || n === null || isNaN(n)) return 'Rp 0';
+  return 'Rp ' + Number(n).toLocaleString('id-ID');
 }
-
-// Setelah menambahkan variabel di atas, fungsi pemuat data keuangan Anda 
-// akan berjalan dengan lancar tanpa terhenti karena variabel tidak ditemukan.
 
 async function ambilDataKeuangan() {
   try {
