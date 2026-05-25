@@ -9,8 +9,8 @@ const manifestData = {
   theme_color: "#2a1f14",
   orientation: "portrait-primary",
   icons: [
-    { src: "https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png", sizes: "192x192", type: "image/png" },
-    { src: "https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png", sizes: "512x512", type: "image/png" }
+    { src: "./Logo_HM.png", sizes: "192x192", type: "image/png" },
+    { src: "./Logo_HM.png", sizes: "512x512", type: "image/png" }
   ]
 };
 const manifestBlob = new Blob([JSON.stringify(manifestData)], {type: 'application/json'});
@@ -22,7 +22,7 @@ const BASE_AR_URL  = 'https://hanamemoria-project.github.io/HMproject/';
 const WORKER_URL   = 'https://hm-backend.hanamemoria.workers.dev/';
 const SUPABASE_URL = 'https://ujnuvlrdxzqtfppbhioo.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqbnV2bHJkeHpxdGZwcGJoaW9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNjU2OTYsImV4cCI6MjA5MDY0MTY5Nn0.slqPc8v7QZXxHzvMkOlXWAAYebX-sqUIiKZvA9DJkl0';
-const LOGO_URL     = 'https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png';
+const LOGO_URL     = './Logo_HM.png';
 
 /* Supabase Auth Client */
 const { createClient } = supabase;
