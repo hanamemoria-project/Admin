@@ -1041,7 +1041,9 @@ function buatGrafikProduk() {
   const softColors = ['#c9a884', '#98c4a5', '#8bb8cc'];
   const softHover  = ['#b8946e', '#7aae8c', '#6aa0b5'];
 
-  const ctx = document.getElementById('grafikProduk').getContext('2d');
+  const ctxProdEl = document.getElementById('grafikProduk');
+  if (!ctxProdEl) return;
+  const ctx = ctxProdEl.getContext('2d');
   if (grafikProduk) grafikProduk.destroy();
 
   if (type === 'doughnut') {
@@ -1070,7 +1072,8 @@ function buatGrafikProduk() {
 }
 
 function buatGrafikKeuangan() {
-  const bulanCount = parseInt(document.getElementById('keu-filter-bulan').value) || 6;
+  const bulanEl = document.getElementById('keu-filter-bulan');
+  const bulanCount = parseInt(bulanEl ? bulanEl.value : 6) || 6;
   const labels = [], masukData = [], keluarData = [];
   const now = new Date();
 
@@ -1090,7 +1093,9 @@ function buatGrafikKeuangan() {
     keluarData.push(keluar);
   }
 
-  const ctx = document.getElementById('grafikKeuangan').getContext('2d');
+  const ctxKeuEl = document.getElementById('grafikKeuangan');
+  if (!ctxKeuEl) return;
+  const ctx = ctxKeuEl.getContext('2d');
   if (grafikKeuangan) grafikKeuangan.destroy();
   grafikKeuangan = new Chart(ctx, {
     type: 'bar',
@@ -1126,7 +1131,9 @@ function buatGrafikKategori() {
   const vals   = Object.values(katMap);
   const colors = ['#c9a884','#e8b8b0','#8bb8cc','#98c4a5','#e8d5a8','#b8a0c8'];
 
-  const ctx = document.getElementById('grafikKategori').getContext('2d');
+  const ctxKatEl = document.getElementById('grafikKategori');
+  if (!ctxKatEl) return;
+  const ctx = ctxKatEl.getContext('2d');
   if (grafikKategori) grafikKategori.destroy();
   if (!labels.length) {
     grafikKategori = new Chart(ctx, { type: 'doughnut', data: { labels: ['Tidak ada data'], datasets: [{ data: [1], backgroundColor: ['#e8d9c5'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, padding: 8, boxWidth: 10 } } } } });
@@ -1140,11 +1147,12 @@ function buatGrafikKategori() {
 }
 
 function renderTabelKeuangan() {
-  const jenis = document.getElementById('keu-filter-jenis').value;
-  const kat   = document.getElementById('keu-filter-kat').value;
+  const jenis = document.getElementById('keu-filter-jenis') ? document.getElementById('keu-filter-jenis').value : 'Semua';
+  const kat   = document.getElementById('keu-filter-kat')   ? document.getElementById('keu-filter-kat').value   : 'Semua';
   const query = (document.getElementById('keu-search') ? document.getElementById('keu-search').value : '').toLowerCase().trim();
   const waktu = document.getElementById('keu-filter-waktu') ? document.getElementById('keu-filter-waktu').value : 'semua';
   const tbody = document.getElementById('tabel-keuangan');
+  if (!tbody) return;
 
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -1193,7 +1201,9 @@ function renderTabelKeuangan() {
 }
 
 function filterTransaksi() {
-  const waktu = document.getElementById('keu-filter-waktu').value;
+  const waktuEl = document.getElementById('keu-filter-waktu');
+  if (!waktuEl) return;
+  const waktu = waktuEl.value;
   const dateRange = document.getElementById('keu-date-range');
   if (dateRange) dateRange.style.display = waktu === 'kustom' ? 'flex' : 'none';
   renderTabelKeuangan();
