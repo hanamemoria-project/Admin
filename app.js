@@ -660,7 +660,7 @@ function getWaLink(p, type) {
   const alamat = `${p.alamat_detail || ''}, ${p.kecamatan || ''}, ${p.kota || ''}`;
   const total  = p.total_harga ? p.total_harga.toLocaleString('id-ID') : '0';
   const msgs = {
-    pending_payment: `Halo Kak 😊\nTerima kasih sudah memesan di Hanamemoria 🤍\n\n📦 ID Pesanan: ${p.id_pesanan}\n🧸 Produk: ${p.jenis_pesanan}\n📍 Alamat: ${alamat}\n💰 Total Tagihan: Rp${total}\n\nSilakan lakukan pembayaran ke:\n🏦 BCA: 807683252\na.n Nuzulul Laila Khoirul Alfia\n\nSetelah transfer, mohon kirim bukti pembayaran ya 📩`,
+    pending_payment: `Halo Kak 😊\nTerima kasih sudah memesan di Hana Memoria 🤍\n\n📦 ID Pesanan: ${p.id_pesanan}\n🧸 Produk: ${p.jenis_pesanan}\n📍 Alamat: ${alamat}\n💰 Total Tagihan: Rp${total}\n\nSilakan lakukan pembayaran ke:\n🏦 BCA: 807683252\na.n Nuzulul Laila Khoirul Alfia\n\nSetelah transfer, mohon kirim bukti pembayaran ya 📩`,
     paid:            `Halo Kak 😊\nPembayaran untuk pesanan ${p.id_pesanan} sudah kami terima 🤍\nEstimasi pengerjaan: ±3 hari kerja ✨`,
     processing:      `Halo Kak 😊\nPesanan ${p.id_pesanan} saat ini sedang dalam proses pengerjaan ✨`,
     completed:       `Halo Kak 😊\nKabar baik! 🎉\nPesanan ${p.id_pesanan} sudah selesai dan siap dikirim 🚚✨`
@@ -970,6 +970,7 @@ async function jalankanCetak(orientasi) {
 let dataKeuangan = [];
 let grafikKeuangan = null;
 let grafikKategori = null;
+let grafikProduk = null; // PERBAIKAN: Deklarasi grafikProduk ditambahkan agar tidak membuat sisa script error saat di-destroy
 
 function rupiahFormat(n) {
   if (n === undefined || n === null || isNaN(n)) return 'Rp 0';
@@ -1044,7 +1045,9 @@ function buatGrafikProduk() {
   const ctxProdEl = document.getElementById('grafikProduk');
   if (!ctxProdEl) return;
   const ctx = ctxProdEl.getContext('2d');
-  if (grafikProduk) grafikProduk.destroy();
+  
+  // Titik error sebelumnya telah teratasi karena variabel sudah di-inisialisasi
+  if (grafikProduk) grafikProduk.destroy(); 
 
   if (type === 'doughnut') {
     grafikProduk = new Chart(ctx, {
