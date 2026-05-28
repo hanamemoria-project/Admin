@@ -53,6 +53,7 @@
 
 <body>
 
+<!-- ===== LOGIN SCREEN ===== -->
 <div id="login-screen">
   <div class="login-card">
     <div class="login-logo-wrap">
@@ -108,12 +109,12 @@
       <div class="sub">Admin Panel</div>
     </div>
   </div>
-  <div class="sidebar-nav" id="sidebar-nav-container">
+  <div class="sidebar-nav">
     <div class="nav-label">Menu</div>
     <button class="nav-item active" onclick="showSection('dashboard',this)">
       <span class="icon">🏠</span><span class="nav-text">Dashboard</span>
     </button>
-    <button class="nav-item" id="nav-item-orders" onclick="showSection('orders',this)">
+    <button class="nav-item" onclick="showSection('orders',this)">
       <span class="icon">📋</span><span class="nav-text">Pesanan</span>
       <span class="notif-dot" id="sidebar-notif-dot"></span>
     </button>
@@ -181,81 +182,39 @@
   </header>
 
   <main id="content">
+  <!-- DASHBOARD: Ringkasan & Grafik -->
   <div id="section-dashboard">
     <div class="stats-grid" id="stats-grid">
-      <div class="stat-card gold">
-        <div class="emoji">⏳</div>
-        <div class="label">Belum Bayar</div>
-        <div class="value" id="c-pending">–</div>
-      </div>
-      <div class="stat-card sky">
-        <div class="emoji">💳</div>
-        <div class="label">Sudah Bayar</div>
-        <div class="value" id="c-paid">–</div>
-      </div>
-      <div class="stat-card rose">
-        <div class="emoji">⚙️</div>
-        <div class="label">Diproses</div>
-        <div class="value" id="c-proses">–</div>
-      </div>
-      <div class="stat-card sage">
-        <div class="emoji">✨</div>
-        <div class="label">Selesai</div>
-        <div class="value" id="c-selesai">–</div>
-      </div>
-      <div class="stat-card danger">
-        <div class="emoji">⚠️</div>
-        <div class="label">Belum MindAR</div>
-        <div class="value" id="c-mindar">–</div>
-      </div>
+      <div class="stat-card gold"><div class="emoji">⏳</div><div class="label">Belum Bayar</div><div class="value" id="c-pending">–</div></div>
+      <div class="stat-card sky"><div class="emoji">💳</div><div class="label">Sudah Bayar</div><div class="value" id="c-paid">–</div></div>
+      <div class="stat-card rose"><div class="emoji">⚙️</div><div class="label">Diproses</div><div class="value" id="c-proses">–</div></div>
+      <div class="stat-card sage"><div class="emoji">✨</div><div class="label">Selesai</div><div class="value" id="c-selesai">–</div></div>
+      <div class="stat-card danger"><div class="emoji">⚠️</div><div class="label">Belum MindAR</div><div class="value" id="c-mindar">–</div></div>
     </div>
-
     <div class="dashboard-charts-grid">
       <div class="card">
-        <div class="card-header">
-          <span class="card-title">🍩 Status Pesanan</span>
-        </div>
-        <div class="card-body">
-          <div class="chart-wrap">
-            <canvas id="grafikStatus" width="200" height="200"></canvas>
-          </div>
-        </div>
+        <div class="card-header"><span class="card-title">🍩 Status Pesanan</span></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="grafikStatus" width="200" height="200"></canvas></div></div>
       </div>
-
       <div class="card">
-        <div class="card-header">
-          <span class="card-title">⏰ Deadline Minggu Ini</span>
-        </div>
-        <div class="card-body">
-          <div class="chart-wrap">
-            <canvas id="grafikDeadline" height="200"></canvas>
-          </div>
-        </div>
+        <div class="card-header"><span class="card-title">⏰ Deadline Minggu Ini</span></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="grafikDeadline" height="200"></canvas></div></div>
       </div>
-
       <div class="card">
-        <div class="card-header">
-          <span class="card-title">📦 Produk Populer</span>
-        </div>
-        <div class="card-body">
-          <div class="chart-wrap">
-            <canvas id="grafikProdukDash" height="200"></canvas>
-          </div>
-        </div>
+        <div class="card-header"><span class="card-title">📦 Produk Populer</span></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="grafikProdukDash" height="200"></canvas></div></div>
       </div>
-
       <div class="card">
         <div class="card-header">
           <span class="card-title">🕐 Pesanan Terbaru</span>
-          <button class="btn btn-ghost btn-sm" onclick="showSection('orders',document.getElementById('nav-item-orders'))">Lihat Semua →</button>
+          <button class="btn btn-ghost btn-sm" onclick="showSection('orders',document.querySelector('.bottom-nav-item:nth-child(2)'))">Lihat Semua →</button>
         </div>
-        <div class="card-body" style="padding:0;">
-          <div id="dash-recent-list" style="max-height:260px;overflow-y:auto;"></div>
-        </div>
+        <div class="card-body" style="padding:0;"><div id="dash-recent-list" style="max-height:260px;overflow-y:auto;"></div></div>
       </div>
     </div>
   </div>
 
+  <!-- PESANAN: Tabel + Filter Deadline -->
   <div id="section-orders" style="display:none;">
     <div class="card" id="tabel-card">
       <div class="toolbar">
@@ -277,13 +236,13 @@
             <option value="processing">Diproses</option>
             <option value="completed">Selesai</option>
           </select>
-          <select class="filter-box" id="filter-deadline" onchange="renderTabel()" title="Filter Deadline">
+          <select class="filter-box" id="filter-deadline" onchange="renderTabel()">
             <option value="Semua">Semua Deadline</option>
             <option value="terlambat">⚠️ Terlambat</option>
             <option value="hari_ini">🔴 Hari Ini</option>
             <option value="besok">🟠 Besok</option>
             <option value="minggu_ini">🟡 Minggu Ini</option>
-            <option value="lebih">🟢 Lebih dari 7 hari</option>
+            <option value="lebih">🟢 &gt; 7 Hari</option>
           </select>
         </div>
         <div class="toolbar-right">
@@ -295,7 +254,6 @@
           </select>
         </div>
       </div>
-
       <div class="table-wrap">
         <table>
           <thead>
@@ -314,7 +272,6 @@
           </tbody>
         </table>
       </div>
-
       <div class="pagination" id="pagination-bar">
         <span id="paging-info" style="font-size:12px;"></span>
         <div class="page-btns" id="page-btns"></div>
@@ -322,131 +279,136 @@
     </div>
   </div>
 
-  <div id="section-keuangan" style="display:none;">
+  <!-- KEUANGAN -->
+  <div id="section-keuangan">
     <div class="keu-fixed-top">
-      <div class="keu-stats-grid">
-        <div class="keu-stat income">
-          <div class="keu-label">💚 Pemasukan Bulan Ini</div>
-          <div class="keu-val" id="keu-masuk">–</div>
-          <div class="keu-sub" id="keu-masuk-count">0 transaksi</div>
+    <div class="keu-stats-grid">
+      <div class="keu-stat income">
+        <div class="keu-label">💚 Pemasukan Bulan Ini</div>
+        <div class="keu-val" id="keu-masuk">–</div>
+        <div class="keu-sub" id="keu-masuk-count">0 transaksi</div>
+      </div>
+      <div class="keu-stat expense">
+        <div class="keu-label">❤️ Pengeluaran Bulan Ini</div>
+        <div class="keu-val" id="keu-keluar">–</div>
+        <div class="keu-sub" id="keu-keluar-count">0 transaksi</div>
+      </div>
+      <div class="keu-stat profit">
+        <div class="keu-label">🌸 Laba Bersih Bulan Ini</div>
+        <div class="keu-val" id="keu-laba">–</div>
+        <div class="keu-sub" id="keu-laba-info">–</div>
+      </div>
+    </div>
+
+    <div class="keu-row">
+      <div class="keu-chart-card">
+        <div class="card-header">
+          <span class="card-title">Pemasukan vs Pengeluaran</span>
+          <select class="filter-box" id="keu-filter-bulan" onchange="renderKeuangan()" style="font-size:12px;padding:6px 10px;">
+            <option value="6">6 Bulan Terakhir</option>
+            <option value="3">3 Bulan Terakhir</option>
+            <option value="12">12 Bulan Terakhir</option>
+          </select>
         </div>
-        <div class="keu-stat expense">
-          <div class="keu-label">❤️ Pengeluaran Bulan Ini</div>
-          <div class="keu-val" id="keu-keluar">–</div>
-          <div class="keu-sub" id="keu-keluar-count">0 transaksi</div>
-        </div>
-        <div class="keu-stat profit">
-          <div class="keu-label">🌸 Laba Bersih Bulan Ini</div>
-          <div class="keu-val" id="keu-laba">–</div>
-          <div class="keu-sub" id="keu-laba-info">–</div>
+        <div class="keu-chart-body">
+          <canvas id="grafikKeuangan" height="220"></canvas>
         </div>
       </div>
-
-      <div class="keu-row">
-        <div class="keu-chart-card">
-          <div class="card-header">
-            <span class="card-title">Pemasukan vs Pengeluaran</span>
-            <select class="filter-box" id="keu-filter-bulan" onchange="renderKeuangan()" style="font-size:12px;padding:6px 10px;">
-              <option value="6">6 Bulan Terakhir</option>
-              <option value="3">3 Bulan Terakhir</option>
-              <option value="12">12 Bulan Terakhir</option>
-            </select>
-          </div>
-          <div class="keu-chart-body">
-            <canvas id="grafikKeuangan" height="220"></canvas>
-          </div>
+      <div class="keu-chart-card">
+        <div class="card-header">
+          <span class="card-title">Kategori Pengeluaran</span>
         </div>
-        <div class="keu-chart-card">
-          <div class="card-header">
-            <span class="card-title">Kategori Pengeluaran</span>
-          </div>
-          <div class="keu-chart-body">
-            <canvas id="grafikKategori" height="220"></canvas>
-          </div>
+        <div class="keu-chart-body">
+          <canvas id="grafikKategori" height="220"></canvas>
         </div>
       </div>
+    </div>
 
-      <div class="keu-row" style="margin-bottom:20px;">
-        <div class="keu-chart-card">
-          <div class="card-header">
-            <span class="card-title">📊 Performa Produk</span>
-            <select class="filter-box" id="produk-chart-type" onchange="buatGrafikProduk()" style="font-size:12px;padding:6px 10px;">
-              <option value="bar">Bar Chart</option>
-              <option value="doughnut">Pie / Donut</option>
-            </select>
-          </div>
-          <div class="keu-chart-body">
-            <canvas id="grafikProduk" height="220"></canvas>
-          </div>
+    <div class="keu-row" style="margin-bottom:20px;">
+      <div class="keu-chart-card">
+        <div class="card-header">
+          <span class="card-title">📊 Performa Produk</span>
+          <select class="filter-box" id="produk-chart-type" onchange="buatGrafikProduk()" style="font-size:12px;padding:6px 10px;">
+            <option value="bar">Bar Chart</option>
+            <option value="doughnut">Pie / Donut</option>
+          </select>
         </div>
-        <div class="keu-chart-card" style="display:flex;flex-direction:column;gap:12px;justify-content:center;">
-          <div style="background:var(--cream2);border-radius:var(--radius);padding:16px;">
-            <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-muted);margin-bottom:6px;">🔑 Gantungan Kunci</div>
-            <div id="prod-stat-gk" style="font-size:22px;font-weight:700;color:var(--brown-dark);">–</div>
-            <div id="prod-stat-gk-pct" style="font-size:11px;color:var(--ink-muted);margin-top:2px;">dari total pesanan</div>
-          </div>
-          <div style="background:var(--cream2);border-radius:var(--radius);padding:16px;">
-            <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-muted);margin-bottom:6px;">🖼️ Figura</div>
-            <div id="prod-stat-fig" style="font-size:22px;font-weight:700;color:var(--brown-dark);">–</div>
-            <div id="prod-stat-fig-pct" style="font-size:11px;color:var(--ink-muted);margin-top:2px;">dari total pesanan</div>
-          </div>
-          <div style="background:var(--cream2);border-radius:var(--radius);padding:16px;">
-            <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-muted);margin-bottom:6px;">📅 Frame 12 Bulan</div>
-            <div id="prod-stat-f12" style="font-size:22px;font-weight:700;color:var(--brown-dark);">–</div>
-            <div id="prod-stat-f12-pct" style="font-size:11px;color:var(--ink-muted);margin-top:2px;">dari total pesanan</div>
-          </div>
+        <div class="keu-chart-body">
+          <canvas id="grafikProduk" height="220"></canvas>
         </div>
-      </div></div><div class="keu-transaksi-card">
+      </div>
+      <div class="keu-chart-card" style="display:flex;flex-direction:column;gap:12px;justify-content:center;">
+        <div style="background:var(--cream2);border-radius:var(--radius);padding:16px;">
+          <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-muted);margin-bottom:6px;">🔑 Gantungan Kunci</div>
+          <div id="prod-stat-gk" style="font-size:22px;font-weight:700;color:var(--brown-dark);">–</div>
+          <div id="prod-stat-gk-pct" style="font-size:11px;color:var(--ink-muted);margin-top:2px;">dari total pesanan</div>
+        </div>
+        <div style="background:var(--cream2);border-radius:var(--radius);padding:16px;">
+          <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-muted);margin-bottom:6px;">🖼️ Figura</div>
+          <div id="prod-stat-fig" style="font-size:22px;font-weight:700;color:var(--brown-dark);">–</div>
+          <div id="prod-stat-fig-pct" style="font-size:11px;color:var(--ink-muted);margin-top:2px;">dari total pesanan</div>
+        </div>
+        <div style="background:var(--cream2);border-radius:var(--radius);padding:16px;">
+          <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-muted);margin-bottom:6px;">📅 Frame 12 Bulan</div>
+          <div id="prod-stat-f12" style="font-size:22px;font-weight:700;color:var(--brown-dark);">–</div>
+          <div id="prod-stat-f12-pct" style="font-size:11px;color:var(--ink-muted);margin-top:2px;">dari total pesanan</div>
+        </div>
+      </div>
+    </div><!-- /.keu-row produk -->
+
+    </div><!-- /.keu-fixed-top -->
+
+    <div class="keu-transaksi-card">
       <div class="keu-toolbar-sticky">
-        <div class="keu-toolbar">
-          <div class="keu-toolbar-left">
-            <div class="search-wrap" style="flex:1;min-width:160px;max-width:260px;">
-              <span class="search-icon">🔍</span>
-              <input type="text" id="keu-search" placeholder="Cari keterangan, kategori..." oninput="filterTransaksi()" style="width:100%;">
-            </div>
-            <select class="filter-box" id="keu-filter-jenis" onchange="filterTransaksi()" style="font-size:12px;">
-              <option value="Semua">Semua Jenis</option>
-              <option value="pemasukan">💚 Pemasukan</option>
-              <option value="pengeluaran">❤️ Pengeluaran</option>
-            </select>
-            <select class="filter-box" id="keu-filter-kat" onchange="filterTransaksi()" style="font-size:12px;">
-              <option value="Semua">Semua Kategori</option>
-              <option value="penjualan">Penjualan</option>
-              <option value="bahan baku">Bahan Baku</option>
-              <option value="ongkos kirim">Ongkos Kirim</option>
-              <option value="operasional">Operasional</option>
-              <option value="marketing">Marketing</option>
-              <option value="lain-lain">Lain-lain</option>
-            </select>
-            <select class="filter-box" id="keu-filter-waktu" onchange="filterTransaksi()" style="font-size:12px;">
-              <option value="semua">Semua Waktu</option>
-              <option value="bulan_ini">Bulan Ini</option>
-              <option value="minggu_ini">Minggu Ini</option>
-              <option value="kustom">Rentang Kustom...</option>
-            </select>
-            <div id="keu-date-range" style="display:none;gap:6px;align-items:center;flex-wrap:wrap;">
-              <input type="date" id="keu-date-from" onchange="filterTransaksi()" style="padding:6px 8px;border-radius:var(--radius-xs);border:1px solid var(--sand);background:var(--cream);font-size:12px;color:var(--ink);">
-              <span style="font-size:11px;color:var(--ink-muted);">s/d</span>
-              <input type="date" id="keu-date-to" onchange="filterTransaksi()" style="padding:6px 8px;border-radius:var(--radius-xs);border:1px solid var(--sand);background:var(--cream);font-size:12px;color:var(--ink);">
-            </div>
+      <div class="keu-toolbar">
+        <div class="keu-toolbar-left">
+          <div class="search-wrap" style="flex:1;min-width:160px;max-width:260px;">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="keu-search" placeholder="Cari keterangan, kategori..." oninput="filterTransaksi()" style="width:100%;">
           </div>
-          <button class="btn btn-primary btn-sm" onclick="bukaModalKeuangan()">+ Tambah Transaksi</button>
+          <select class="filter-box" id="keu-filter-jenis" onchange="filterTransaksi()" style="font-size:12px;">
+            <option value="Semua">Semua Jenis</option>
+            <option value="pemasukan">💚 Pemasukan</option>
+            <option value="pengeluaran">❤️ Pengeluaran</option>
+          </select>
+          <select class="filter-box" id="keu-filter-kat" onchange="filterTransaksi()" style="font-size:12px;">
+            <option value="Semua">Semua Kategori</option>
+            <option value="penjualan">Penjualan</option>
+            <option value="bahan baku">Bahan Baku</option>
+            <option value="ongkos kirim">Ongkos Kirim</option>
+            <option value="operasional">Operasional</option>
+            <option value="marketing">Marketing</option>
+            <option value="lain-lain">Lain-lain</option>
+          </select>
+          <select class="filter-box" id="keu-filter-waktu" onchange="filterTransaksi()" style="font-size:12px;">
+            <option value="semua">Semua Waktu</option>
+            <option value="bulan_ini">Bulan Ini</option>
+            <option value="minggu_ini">Minggu Ini</option>
+            <option value="kustom">Rentang Kustom...</option>
+          </select>
+          <div id="keu-date-range" style="display:none;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input type="date" id="keu-date-from" onchange="filterTransaksi()" style="padding:6px 8px;border-radius:var(--radius-xs);border:1px solid var(--sand);background:var(--cream);font-size:12px;color:var(--ink);">
+            <span style="font-size:11px;color:var(--ink-muted);">s/d</span>
+            <input type="date" id="keu-date-to" onchange="filterTransaksi()" style="padding:6px 8px;border-radius:var(--radius-xs);border:1px solid var(--sand);background:var(--cream);font-size:12px;color:var(--ink);">
+          </div>
         </div>
-      </div><div class="keu-table-wrap">
+        <button class="btn btn-primary btn-sm" onclick="bukaModalKeuangan()">+ Tambah Transaksi</button>
+      </div>
+      </div><!-- /.keu-toolbar-sticky -->
+      <div class="keu-table-wrap">
         <table class="keu-table">
-          <thead>
-            <tr>
-              <th>Tanggal</th><th>Jenis</th><th>Kategori</th><th>Keterangan</th><th>Nominal</th><th style="cursor:default;">Aksi</th>
-            </tr>
-          </thead>
+          <thead><tr>
+            <th>Tanggal</th><th>Jenis</th><th>Kategori</th><th>Keterangan</th><th>Nominal</th><th style="cursor:default;">Aksi</th>
+          </tr></thead>
           <tbody id="tabel-keuangan">
             <tr><td colspan="6"><div class="empty-state"><div class="big">💰</div><p>Memuat data keuangan...</p></div></td></tr>
           </tbody>
         </table>
       </div>
     </div>
-  </div>
-  </main>
+
+  </div></main>
+
 </div>
 
 <nav id="bottom-nav">
