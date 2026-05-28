@@ -9,8 +9,8 @@ const manifestData = {
   theme_color: "#2a1f14",
   orientation: "portrait-primary",
   icons: [
-    { src: "./Logo_HM.png", sizes: "192x192", type: "image/png" },
-    { src: "./Logo_HM.png", sizes: "512x512", type: "image/png" }
+    { src: "https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png", sizes: "192x192", type: "image/png" },
+    { src: "https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png", sizes: "512x512", type: "image/png" }
   ]
 };
 const manifestBlob = new Blob([JSON.stringify(manifestData)], {type: 'application/json'});
@@ -22,7 +22,7 @@ const BASE_AR_URL  = 'https://hanamemoria-project.github.io/HMproject/';
 const WORKER_URL   = 'https://hm-backend.hanamemoria.workers.dev/';
 const SUPABASE_URL = 'https://ujnuvlrdxzqtfppbhioo.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqbnV2bHJkeHpxdGZwcGJoaW9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNjU2OTYsImV4cCI6MjA5MDY0MTY5Nn0.slqPc8v7QZXxHzvMkOlXWAAYebX-sqUIiKZvA9DJkl0';
-const LOGO_URL     = './Logo_HM.png';
+const LOGO_URL     = 'https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png';
 
 /* Supabase Auth Client */
 const { createClient } = supabase;
@@ -170,12 +170,12 @@ function showSection(s, el) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+  ['orders', 'keuangan'].forEach(name => {
+    const sec = document.getElementById('section-' + name);
+    if (sec) sec.style.display = 'none';
+  });
   const dash = document.getElementById('section-dashboard');
-  const ord  = document.getElementById('section-orders');
-  const keu  = document.getElementById('section-keuangan');
   if (dash) dash.style.display = 'block';
-  if (ord)  ord.style.display  = 'none';
-  if (keu)  keu.style.display  = 'none';
 });
 
 /* ===== NOTIFIKASI ===== */
@@ -327,9 +327,9 @@ function normaliseStatus(s) {
 function renderTabel() {
   if (!Array.isArray(dataPesanan)) return;
 
-  const query    = (document.getElementById('search-input') ? document.getElementById('search-input').value : '').toLowerCase();
-  const produk   = document.getElementById('filter-produk') ? document.getElementById('filter-produk').value : 'Semua';
-  const status   = document.getElementById('filter-status') ? document.getElementById('filter-status').value : 'Semua';
+  const query    = document.getElementById('search-input') ? document.getElementById('search-input').value.toLowerCase() : '';
+  const produk   = document.getElementById('filter-produk')   ? document.getElementById('filter-produk').value   : 'Semua';
+  const status   = document.getElementById('filter-status')   ? document.getElementById('filter-status').value   : 'Semua';
   const deadline = document.getElementById('filter-deadline') ? document.getElementById('filter-deadline').value : 'Semua';
   const perPage  = parseInt(document.getElementById('per-page') ? document.getElementById('per-page').value : 10) || 10;
   const now      = new Date();
@@ -344,12 +344,9 @@ function renderTabel() {
     else if (s === 'processing') counts.processing++;
     else if (s === 'completed') counts.completed++;
     if (mindar) counts.mindar++;
-    // Calculate deadline days for every item
-    const tglDibuat = new Date(p.created_at);
-    const tglDeadline = new Date(tglDibuat);
-    tglDeadline.setDate(tglDeadline.getDate() + 3);
-    const sisaHari = Math.ceil((tglDeadline - now) / 86400000);
-    return { ...p, _status: s, _mindar: mindar, _sisaHari: sisaHari, _tglDeadline: tglDeadline };
+    const _tglDl = new Date(new Date(p.created_at).getTime() + 3*86400000);
+    const _sisa  = Math.ceil((_tglDl - new Date()) / 86400000);
+    return { ...p, _status: s, _mindar: mindar, _sisaHari: _sisa, _tglDeadline: _tglDl };
   }).filter(p => {
     if (produk !== 'Semua' && p.jenis_pesanan !== produk) return false;
     if (status !== 'Semua' && p._status !== status) return false;
@@ -357,15 +354,13 @@ function renderTabel() {
       const hay = `${p.id_pesanan} ${p.nama_pelanggan} ${p.jenis_pesanan}`.toLowerCase();
       if (!hay.includes(query)) return false;
     }
-    // Deadline filter
-    if (deadline !== 'Semua' && p._status !== 'completed') {
-      if (deadline === 'terlambat' && p._sisaHari >= 0) return false;
-      if (deadline === 'hari_ini' && p._sisaHari !== 0) return false;
-      if (deadline === 'besok' && p._sisaHari !== 1) return false;
+    if (deadline !== 'Semua') {
+      if (p._status === 'completed') return false;
+      if (deadline === 'terlambat'  && p._sisaHari >= 0) return false;
+      if (deadline === 'hari_ini'   && p._sisaHari !== 0) return false;
+      if (deadline === 'besok'      && p._sisaHari !== 1) return false;
       if (deadline === 'minggu_ini' && (p._sisaHari < 0 || p._sisaHari > 7)) return false;
-      if (deadline === 'lebih' && p._sisaHari <= 7) return false;
-    } else if (deadline !== 'Semua' && p._status === 'completed') {
-      return false; // completed orders have no deadline concern
+      if (deadline === 'lebih'      && p._sisaHari <= 7) return false;
     }
     return true;
   });
@@ -387,7 +382,6 @@ function renderTabel() {
   document.getElementById('c-selesai').textContent  = counts.completed;
   document.getElementById('c-mindar').textContent   = counts.mindar;
   buatDiagram(counts.pending_payment, counts.paid, counts.processing, counts.completed, counts.mindar);
-  // Update dashboard-only charts
   buatGrafikDeadline(dataPesanan);
   buatGrafikProdukDash(dataPesanan);
   renderDashRecent(dataPesanan);
@@ -411,8 +405,8 @@ function renderTabel() {
     tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="big">🔍</div><p>Tidak ada pesanan ditemukan</p></div></td></tr>`;
   } else {
     page.forEach(p => {
-      const tglDeadline = p._tglDeadline || (() => { const d = new Date(p.created_at); d.setDate(d.getDate()+3); return d; })();
-      const sisaHari = p._sisaHari !== undefined ? p._sisaHari : Math.ceil((tglDeadline - now) / 86400000);
+      const tglDeadline = p._tglDeadline || new Date(new Date(p.created_at).getTime()+3*86400000);
+      const sisaHari    = p._sisaHari !== undefined ? p._sisaHari : Math.ceil((tglDeadline - now)/86400000);
 
       let teksDeadline, kelasDeadline;
       if (p._status === 'completed') { teksDeadline = '✨ Selesai'; kelasDeadline = 'deadline-ok'; }
@@ -571,12 +565,10 @@ function buatGrafikDeadline(data) {
   const el = document.getElementById('grafikDeadline');
   if (!el || typeof Chart === 'undefined') return;
   const now = new Date();
-  let terlambat = 0, hariIni = 0, besok = 0, mingguIni = 0, lebih = 0;
-  data.forEach(p => {
+  let terlambat=0, hariIni=0, besok=0, mingguIni=0, lebih=0;
+  (data||[]).forEach(p => {
     if (normaliseStatus(p.status_pesanan) === 'completed') return;
-    const d = new Date(p.created_at);
-    d.setDate(d.getDate() + 3);
-    const sisa = Math.ceil((d - now) / 86400000);
+    const sisa = Math.ceil((new Date(p.created_at).getTime()+3*86400000 - now) / 86400000);
     if (sisa < 0) terlambat++;
     else if (sisa === 0) hariIni++;
     else if (sisa === 1) besok++;
@@ -586,22 +578,13 @@ function buatGrafikDeadline(data) {
   if (grafikDeadlineChart) grafikDeadlineChart.destroy();
   grafikDeadlineChart = new Chart(el.getContext('2d'), {
     type: 'bar',
-    data: {
-      labels: ['Terlambat','Hari Ini','Besok','Minggu Ini','> 7 Hari'],
-      datasets: [{
-        data: [terlambat, hariIni, besok, mingguIni, lebih],
-        backgroundColor: ['#d64040','#e8a598','#c9a84c','#8bb8cc','#98c4a5'],
-        borderWidth: 0, borderRadius: 6
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10, family: 'DM Sans' } }, grid: { color: 'rgba(42,31,20,0.06)' } },
-        x: { ticks: { font: { size: 10, family: 'DM Sans' } }, grid: { display: false } }
-      }
-    }
+    data: { labels: ['Terlambat','Hari Ini','Besok','Minggu Ini','> 7 Hari'],
+      datasets: [{ data: [terlambat,hariIni,besok,mingguIni,lebih],
+        backgroundColor: ['#d64040','#e8a598','#c9a84c','#8bb8cc','#98c4a5'], borderWidth:0, borderRadius:6 }] },
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{y:{beginAtZero:true,ticks:{stepSize:1,font:{size:10}},grid:{color:'rgba(42,31,20,0.06)'}},
+              x:{ticks:{font:{size:10}},grid:{display:false}}} }
   });
 }
 
@@ -611,41 +594,34 @@ function buatGrafikProdukDash(data) {
   const el = document.getElementById('grafikProdukDash');
   if (!el || typeof Chart === 'undefined') return;
   const map = {};
-  data.forEach(p => { map[p.jenis_pesanan || 'Lainnya'] = (map[p.jenis_pesanan || 'Lainnya'] || 0) + 1; });
-  const labels = Object.keys(map);
-  const vals = Object.values(map);
+  (data||[]).forEach(p => { map[p.jenis_pesanan||'Lainnya'] = (map[p.jenis_pesanan||'Lainnya']||0)+1; });
+  const labels = Object.keys(map), vals = Object.values(map);
+  if (!labels.length) return;
   if (grafikProdukDashChart) grafikProdukDashChart.destroy();
   grafikProdukDashChart = new Chart(el.getContext('2d'), {
     type: 'doughnut',
-    data: {
-      labels,
-      datasets: [{ data: vals, backgroundColor: ['#c9a884','#8bb8cc','#e8b8b0','#98c4a5'], borderWidth: 0, hoverOffset: 5 }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, cutout: '62%',
-      plugins: { legend: { position: 'bottom', labels: { font: { size: 10, family: 'DM Sans' }, padding: 8, boxWidth: 10 } } }
-    }
+    data: { labels, datasets: [{ data:vals, backgroundColor:['#c9a884','#8bb8cc','#e8b8b0','#98c4a5'], borderWidth:0, hoverOffset:5 }] },
+    options: { responsive:true, maintainAspectRatio:false, cutout:'62%',
+      plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:8,boxWidth:10}}} }
   });
 }
 
-/* ===== RENDER PESANAN TERBARU (Dashboard) ===== */
+/* ===== PESANAN TERBARU (Dashboard) ===== */
 function renderDashRecent(data) {
   const el = document.getElementById('dash-recent-list');
   if (!el) return;
-  const recent = [...data].sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).slice(0,6);
-  if (!recent.length) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink-muted);font-size:13px;">Belum ada pesanan</div>'; return; }
-  const statusLabels = { pending_payment:['⏳','status-pending'], paid:['💳','status-paid'], processing:['⚙️','status-processing'], completed:['✨','status-completed'] };
+  const recent = [...(data||[])].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).slice(0,6);
+  if (!recent.length) { el.innerHTML='<div style="padding:20px;text-align:center;color:var(--ink-muted);font-size:13px;">Belum ada pesanan</div>'; return; }
+  const lbl = {pending_payment:['⏳','status-pending'],paid:['💳','status-paid'],processing:['⚙️','status-processing'],completed:['✨','status-completed']};
   el.innerHTML = recent.map(p => {
     const s = normaliseStatus(p.status_pesanan);
-    const [ico, cls] = statusLabels[s] || ['?',''];
+    const [ico,cls] = lbl[s]||['?',''];
     const tgl = new Date(p.created_at).toLocaleDateString('id-ID',{day:'numeric',month:'short'});
-    return `<div onclick="bukaDetail('${p.id_pesanan}')" style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--sand);cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='var(--cream2)'" onmouseout="this.style.background=''">
-      <div style="flex:1;min-width:0;">
-        <div style="font-weight:600;font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.nama_pelanggan||'–'}</div>
-        <div style="font-size:11px;color:var(--ink-muted);">${p.jenis_pesanan||'–'} · ${tgl}</div>
-      </div>
-      <span class="status-badge ${cls}" style="font-size:11px;padding:3px 8px;">${ico} ${s==='pending_payment'?'Belum Bayar':s==='paid'?'Sudah Bayar':s==='processing'?'Diproses':'Selesai'}</span>
-    </div>`;
+    const label = s==='pending_payment'?'Belum Bayar':s==='paid'?'Sudah Bayar':s==='processing'?'Diproses':'Selesai';
+    return `<div onclick="bukaDetail('${p.id_pesanan}')" style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--sand);cursor:pointer;" onmouseover="this.style.background='var(--cream2)'" onmouseout="this.style.background=''">
+      <div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.nama_pelanggan||'–'}</div>
+      <div style="font-size:11px;color:var(--ink-muted);">${p.jenis_pesanan||'–'} · ${tgl}</div></div>
+      <span class="status-badge ${cls}" style="font-size:11px;padding:3px 8px;">${ico} ${label}</span></div>`;
   }).join('');
 }
 
@@ -660,7 +636,7 @@ function getWaLink(p, type) {
   const alamat = `${p.alamat_detail || ''}, ${p.kecamatan || ''}, ${p.kota || ''}`;
   const total  = p.total_harga ? p.total_harga.toLocaleString('id-ID') : '0';
   const msgs = {
-    pending_payment: `Halo Kak 😊\nTerima kasih sudah memesan di Hana Memoria 🤍\n\n📦 ID Pesanan: ${p.id_pesanan}\n🧸 Produk: ${p.jenis_pesanan}\n📍 Alamat: ${alamat}\n💰 Total Tagihan: Rp${total}\n\nSilakan lakukan pembayaran ke:\n🏦 BCA: 807683252\na.n Nuzulul Laila Khoirul Alfia\n\nSetelah transfer, mohon kirim bukti pembayaran ya 📩`,
+    pending_payment: `Halo Kak 😊\nTerima kasih sudah memesan di Hanamemoria 🤍\n\n📦 ID Pesanan: ${p.id_pesanan}\n🧸 Produk: ${p.jenis_pesanan}\n📍 Alamat: ${alamat}\n💰 Total Tagihan: Rp${total}\n\nSilakan lakukan pembayaran ke:\n🏦 BCA: 807683252\na.n Nuzulul Laila Khoirul Alfia\n\nSetelah transfer, mohon kirim bukti pembayaran ya 📩`,
     paid:            `Halo Kak 😊\nPembayaran untuk pesanan ${p.id_pesanan} sudah kami terima 🤍\nEstimasi pengerjaan: ±3 hari kerja ✨`,
     processing:      `Halo Kak 😊\nPesanan ${p.id_pesanan} saat ini sedang dalam proses pengerjaan ✨`,
     completed:       `Halo Kak 😊\nKabar baik! 🎉\nPesanan ${p.id_pesanan} sudah selesai dan siap dikirim 🚚✨`
@@ -967,15 +943,24 @@ async function jalankanCetak(orientasi) {
 }
 
 /* ===== KEUANGAN ===== */
+// Pastikan variabel-variabel ini dideklarasikan di bagian atas 
+// sebelum fungsi-fungsi keuangan lainnya dipanggil:
+
 let dataKeuangan = [];
 let grafikKeuangan = null;
 let grafikKategori = null;
-let grafikProduk = null; // PERBAIKAN: Deklarasi grafikProduk ditambahkan agar tidak membuat sisa script error saat di-destroy
+let grafikProduk = null; // <--- INI ADALAH KUNCI PERBAIKANNYA
 
 function rupiahFormat(n) {
-  if (n === undefined || n === null || isNaN(n)) return 'Rp 0';
-  return 'Rp ' + Number(n).toLocaleString('id-ID');
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0
+  }).format(n);
 }
+
+// Setelah menambahkan variabel di atas, fungsi pemuat data keuangan Anda 
+// akan berjalan dengan lancar tanpa terhenti karena variabel tidak ditemukan.
 
 async function ambilDataKeuangan() {
   try {
@@ -1042,12 +1027,9 @@ function buatGrafikProduk() {
   const softColors = ['#c9a884', '#98c4a5', '#8bb8cc'];
   const softHover  = ['#b8946e', '#7aae8c', '#6aa0b5'];
 
-  const ctxProdEl = document.getElementById('grafikProduk');
-  if (!ctxProdEl) return;
-  const ctx = ctxProdEl.getContext('2d');
-  
-  // Titik error sebelumnya telah teratasi karena variabel sudah di-inisialisasi
-  if (grafikProduk) grafikProduk.destroy(); 
+  const _elProd = document.getElementById('grafikProduk'); if (!_elProd) return;
+  const ctx = _elProd.getContext('2d');
+  if (grafikProduk) grafikProduk.destroy();
 
   if (type === 'doughnut') {
     grafikProduk = new Chart(ctx, {
@@ -1075,8 +1057,7 @@ function buatGrafikProduk() {
 }
 
 function buatGrafikKeuangan() {
-  const bulanEl = document.getElementById('keu-filter-bulan');
-  const bulanCount = parseInt(bulanEl ? bulanEl.value : 6) || 6;
+  const bulanCount = parseInt(document.getElementById('keu-filter-bulan') ? document.getElementById('keu-filter-bulan').value : 6) || 6;
   const labels = [], masukData = [], keluarData = [];
   const now = new Date();
 
@@ -1096,9 +1077,8 @@ function buatGrafikKeuangan() {
     keluarData.push(keluar);
   }
 
-  const ctxKeuEl = document.getElementById('grafikKeuangan');
-  if (!ctxKeuEl) return;
-  const ctx = ctxKeuEl.getContext('2d');
+  const _elKeu = document.getElementById('grafikKeuangan'); if (!_elKeu) return;
+  const ctx = _elKeu.getContext('2d');
   if (grafikKeuangan) grafikKeuangan.destroy();
   grafikKeuangan = new Chart(ctx, {
     type: 'bar',
@@ -1134,9 +1114,8 @@ function buatGrafikKategori() {
   const vals   = Object.values(katMap);
   const colors = ['#c9a884','#e8b8b0','#8bb8cc','#98c4a5','#e8d5a8','#b8a0c8'];
 
-  const ctxKatEl = document.getElementById('grafikKategori');
-  if (!ctxKatEl) return;
-  const ctx = ctxKatEl.getContext('2d');
+  const _elKat = document.getElementById('grafikKategori'); if (!_elKat) return;
+  const ctx = _elKat.getContext('2d');
   if (grafikKategori) grafikKategori.destroy();
   if (!labels.length) {
     grafikKategori = new Chart(ctx, { type: 'doughnut', data: { labels: ['Tidak ada data'], datasets: [{ data: [1], backgroundColor: ['#e8d9c5'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, padding: 8, boxWidth: 10 } } } } });
@@ -1204,9 +1183,7 @@ function renderTabelKeuangan() {
 }
 
 function filterTransaksi() {
-  const waktuEl = document.getElementById('keu-filter-waktu');
-  if (!waktuEl) return;
-  const waktu = waktuEl.value;
+  const waktu = document.getElementById('keu-filter-waktu').value;
   const dateRange = document.getElementById('keu-date-range');
   if (dateRange) dateRange.style.display = waktu === 'kustom' ? 'flex' : 'none';
   renderTabelKeuangan();
