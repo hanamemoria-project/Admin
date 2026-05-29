@@ -16,7 +16,25 @@
 
   <link rel="stylesheet" href="style.css">
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js"></script>
+  <script>
+    (function() {
+      var cdns = [
+        "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js",
+        "https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js",
+        "https://unpkg.com/chart.js@4.4.3/dist/chart.umd.min.js"
+      ];
+      function loadNext(i) {
+        if (i >= cdns.length) return;
+        var s = document.createElement('script');
+        s.src = cdns[i];
+        s.crossOrigin = "anonymous";
+        s.onload = function() { console.log('Chart.js loaded from: ' + cdns[i]); };
+        s.onerror = function() { loadNext(i + 1); };
+        document.head.appendChild(s);
+      }
+      loadNext(0);
+    })();
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
   <script>
@@ -572,6 +590,18 @@
   <div class="grid-cetak" id="grid-cetak"></div>
 </div>
 
-  <script src="app.js"></script>
+  <script>
+    function waitForChart(cb, attempts) {
+      attempts = attempts || 0;
+      if (typeof Chart !== 'undefined') { cb(); }
+      else if (attempts < 50) { setTimeout(function(){ waitForChart(cb, attempts+1); }, 100); }
+      else { console.error('Chart.js failed to load after all attempts'); cb(); }
+    }
+    waitForChart(function() {
+      var s = document.createElement('script');
+      s.src = 'app.js';
+      document.body.appendChild(s);
+    });
+  </script>
 </body>
 </html>
