@@ -167,6 +167,32 @@ function showSection(s, el) {
   if (h1 && titles[s]) h1.textContent = titles[s];
 
   closeSidebar();
+
+  // Re-render grafik saat section ditampilkan (canvas hanya bisa dirender saat visible)
+  if (s === 'keuangan' && typeof renderKeuangan === 'function' && dataKeuangan.length > 0) {
+    setTimeout(() => {
+      renderKeuangan();
+      if (typeof renderTabelKeuangan === 'function') renderTabelKeuangan();
+    }, 50);
+  }
+  if (s === 'dashboard' && typeof buatGrafikDeadline === 'function' && dataPesanan.length > 0) {
+    setTimeout(() => {
+      buatGrafikDeadline(dataPesanan);
+      buatGrafikProdukDash(dataPesanan);
+      renderDashRecent(dataPesanan);
+      if (typeof buatDiagram === 'function') {
+        const counts = { p:0, pa:0, pr:0, s:0 };
+        dataPesanan.forEach(p => {
+          const st = normaliseStatus(p.status_pesanan);
+          if (st==='pending_payment') counts.p++;
+          else if (st==='paid') counts.pa++;
+          else if (st==='processing') counts.pr++;
+          else if (st==='completed') counts.s++;
+        });
+        buatDiagram(counts.p, counts.pa, counts.pr, counts.s, 0);
+      }
+    }, 50);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
