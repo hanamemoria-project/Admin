@@ -558,6 +558,7 @@ function updateSelectedBadge() {
 }
 
 function buatDiagram(pending, paid, proses, selesai, mindar) {
+  if (typeof Chart === 'undefined') return;
   try {
     if (typeof Chart === 'undefined') return;
     const ctx = document.getElementById('grafikStatus').getContext('2d');
@@ -1029,6 +1030,7 @@ function renderKeuangan() {
 }
 
 function buatGrafikProduk() {
+  if (typeof Chart === 'undefined') return;
   const type = document.getElementById('produk-chart-type') ? document.getElementById('produk-chart-type').value : 'bar';
   const produkMap = { 'Gantungan Kunci': 0, 'Figura': 0, 'Frame 12 Bulan': 0 };
   dataPesanan.forEach(p => {
@@ -1083,6 +1085,7 @@ function buatGrafikProduk() {
 }
 
 function buatGrafikKeuangan() {
+  if (typeof Chart === 'undefined') return;
   const bulanCount = parseInt(document.getElementById('keu-filter-bulan') ? document.getElementById('keu-filter-bulan').value : 6) || 6;
   const labels = [], masukData = [], keluarData = [];
   const now = new Date();
@@ -1127,6 +1130,7 @@ function buatGrafikKeuangan() {
 }
 
 function buatGrafikKategori() {
+  if (typeof Chart === 'undefined') return;
   const now = new Date();
   const bulanIni = now.getMonth(), tahunIni = now.getFullYear();
   const katMap = {};
