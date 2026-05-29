@@ -191,9 +191,6 @@
           </div>
         </div>
       </div>
-      <button class="btn btn-secondary btn-icon refresh-btn" id="btn-refresh" onclick="refreshData()" title="Refresh manual">
-        <span class="icon">↻</span>
-      </button>
       <span id="realtime-dot" class="realtime-dot connecting" title="Realtime: Menghubungkan..."></span>
       <button class="btn btn-danger" onclick="hapusMassal()">🗑️ <span>Hapus</span></button>
       <button class="btn btn-primary" onclick="cetakMassal()">🖨️ <span>Cetak</span></button>
@@ -440,6 +437,9 @@
     </button>
     <button class="bottom-nav-item" onclick="showSection('keuangan',this)">
       <span class="bnav-icon">💰</span>Keuangan
+    </button>
+    <button class="bottom-nav-item" onclick="refreshData()">
+      <span class="bnav-icon">↻</span>Refresh
     </button>
   </div>
 </nav>
