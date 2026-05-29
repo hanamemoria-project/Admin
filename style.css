@@ -2002,3 +2002,31 @@ input[type=checkbox] {
 .btn-logout:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.85); }
 
 
+/* ===== REALTIME STATUS DOT ===== */
+.realtime-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 0.4s;
+}
+.realtime-dot.connecting {
+  background: #c9a84c;
+  animation: pulse-yellow 1.4s infinite;
+}
+.realtime-dot.connected {
+  background: #5cb85c;
+  animation: pulse-green 2.5s infinite;
+}
+.realtime-dot.error {
+  background: #d64040;
+}
+@keyframes pulse-yellow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201,168,76,.5); }
+  50%       { box-shadow: 0 0 0 5px rgba(201,168,76,0); }
+}
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(92,184,92,.45); }
+  50%       { box-shadow: 0 0 0 5px rgba(92,184,92,0); }
+}

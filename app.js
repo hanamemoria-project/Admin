@@ -74,6 +74,10 @@ async function doLogin() {
 }
 
 async function doLogout() {
+  if (realtimeChannel) {
+    supabaseClient.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+  }
   await supabaseClient.auth.signOut();
   location.reload();
 }
@@ -89,6 +93,9 @@ async function muatDashboard() {
   } catch (e) {
     console.error('Gagal memuat keuangan', e);
   }
+  // Aktifkan realtime setelah data awal dimuat
+  setupRealtimeSubscription();
+  requestNotifPermission();
   try { if (typeof window.__hideInstantLoading === 'function') window.__hideInstantLoading(); } catch(e) {}
   try { hideLoading(); } catch(e) {}
 }
@@ -109,6 +116,7 @@ let lastKnownIds = new Set();
 let notifikasi = [];
 let unreadCount = 0;
 let deferredInstallPrompt = null;
+let realtimeChannel = null;
 
 /* ===== LOADING SCREEN ===== */
 function hideLoading() {
@@ -313,6 +321,74 @@ async function refreshData() {
   btn.classList.remove('loading');
   showToast('✅ Data diperbarui', 'success');
 }
+
+/* ===== SUPABASE REALTIME ===== */
+function setupRealtimeSubscription() {
+  // Bersihkan channel lama jika ada
+  if (realtimeChannel) {
+    supabaseClient.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+  }
+
+  realtimeChannel = supabaseClient
+    .channel('pesanan-realtime')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'Pesanan' },
+      (payload) => {
+        const pesananBaru = payload.new;
+        // Cegah duplikasi jika sudah ada di data lokal
+        if (lastKnownIds.has(pesananBaru.id_pesanan)) return;
+
+        // Tambahkan ke state lokal
+        dataPesanan.unshift(pesananBaru);
+        lastKnownIds.add(pesananBaru.id_pesanan);
+
+        // Tampilkan notifikasi
+        addNotifikasi(pesananBaru);
+
+        // Re-render tabel & dashboard
+        renderTabel();
+        updateTopbarSub();
+        showToast(`📦 Pesanan baru: #${pesananBaru.id_pesanan}`, 'success');
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'Pesanan' },
+      (payload) => {
+        const updated = payload.new;
+        const idx = dataPesanan.findIndex(x => x.id_pesanan === updated.id_pesanan);
+        if (idx !== -1) {
+          dataPesanan[idx] = updated;
+          renderTabel();
+        }
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'Pesanan' },
+      (payload) => {
+        const deletedId = payload.old.id_pesanan;
+        dataPesanan = dataPesanan.filter(x => x.id_pesanan !== deletedId);
+        lastKnownIds.delete(deletedId);
+        renderTabel();
+        updateTopbarSub();
+      }
+    )
+    .subscribe((status) => {
+      const dot = document.getElementById('realtime-dot');
+      if (status === 'SUBSCRIBED') {
+        if (dot) { dot.className = 'realtime-dot connected'; dot.title = 'Realtime: Terhubung'; }
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        if (dot) { dot.className = 'realtime-dot error'; dot.title = 'Realtime: Terputus — klik Refresh'; }
+        showToast('⚠️ Koneksi realtime terputus', 'error');
+      } else {
+        if (dot) { dot.className = 'realtime-dot connecting'; dot.title = 'Realtime: Menghubungkan...'; }
+      }
+    });
+}
+
 
 function updateTopbarSub() {
   const now = new Date().toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' });
