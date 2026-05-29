@@ -579,11 +579,46 @@ function buatDiagram(pending, paid, proses, selesai, mindar) {
         maintainAspectRatio: false,
         cutout: '68%',
         plugins: {
-          legend: { position: 'bottom', labels: { font: { size: 10, family: 'DM Sans' }, padding: 8, boxWidth: 10 } }
+          legend: { position: 'bottom', labels: { font: { size: 10, family: 'DM Sans' }, padding: 8, boxWidth: 10 } },
+          tooltip: { callbacks: { label: function(c) { return c.label + ': ' + c.raw + ' pesanan (klik untuk lihat)'; } } }
+        },
+        onClick: function(evt, elements) {
+          if (!elements.length) return;
+          const idx = elements[0].index;
+          const statusMap = ['pending_payment','paid','processing','completed','Semua'];
+          bukaOrdersFilter(statusMap[idx] || 'Semua', 'Semua');
+        },
+        onHover: function(evt, elements) {
+          evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
         }
       }
     });
   } catch(e) {}
+}
+
+/* ===== NAVIGATE TO ORDERS WITH FILTER ===== */
+function bukaOrdersFilter(status, deadline) {
+  // Switch to orders section
+  const ordersBtn = document.querySelector('.bottom-nav-item:nth-child(2)') ||
+                    document.querySelector('[onclick*="orders"]');
+  showSection('orders', ordersBtn);
+
+  // Apply status filter
+  const elStatus = document.getElementById('filter-status');
+  if (elStatus && status) elStatus.value = status;
+
+  // Apply deadline filter
+  const elDeadline = document.getElementById('filter-deadline');
+  if (elDeadline) elDeadline.value = deadline || 'Semua';
+
+  // Reset other filters
+  const elProduk = document.getElementById('filter-produk');
+  if (elProduk) elProduk.value = 'Semua';
+  const elSearch = document.getElementById('search-input');
+  if (elSearch) elSearch.value = '';
+
+  currentPage = 1;
+  renderTabel();
 }
 
 /* ===== GRAFIK DEADLINE (Dashboard) ===== */
@@ -609,7 +644,16 @@ function buatGrafikDeadline(data) {
       datasets: [{ data: [terlambat,hariIni,besok,mingguIni,lebih],
         backgroundColor: ['#d64040','#e8a598','#c9a84c','#8bb8cc','#98c4a5'], borderWidth:0, borderRadius:6 }] },
     options: { responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:function(c){return c.raw+' pesanan (klik untuk lihat)';} }}},
+      onClick: function(evt, elements) {
+        if (!elements.length) return;
+        const deadlineMap = ['terlambat','hari_ini','besok','minggu_ini','lebih'];
+        bukaOrdersFilter('Semua', deadlineMap[elements[0].index]);
+      },
+      onHover: function(evt, elements) {
+        evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+      },
       scales:{y:{beginAtZero:true,ticks:{stepSize:1,font:{size:10}},grid:{color:'rgba(42,31,20,0.06)'}},
               x:{ticks:{font:{size:10}},grid:{display:false}}} }
   });
@@ -629,7 +673,25 @@ function buatGrafikProdukDash(data) {
     type: 'doughnut',
     data: { labels, datasets: [{ data:vals, backgroundColor:['#c9a884','#8bb8cc','#e8b8b0','#98c4a5'], borderWidth:0, hoverOffset:5 }] },
     options: { responsive:true, maintainAspectRatio:false, cutout:'62%',
-      plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:8,boxWidth:10}}} }
+      plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:8,boxWidth:10}},
+        tooltip:{callbacks:{label:function(c){return c.label+': '+c.raw+' (klik untuk lihat)';} }}},
+      onClick: function(evt, elements) {
+        if (!elements.length) return;
+        const produk = labels[elements[0].index];
+        showSection('orders', document.querySelector('.bottom-nav-item:nth-child(2)') || document.querySelector('[onclick*="orders"]'));
+        const elProduk = document.getElementById('filter-produk');
+        if (elProduk) elProduk.value = produk;
+        const elStatus = document.getElementById('filter-status');
+        if (elStatus) elStatus.value = 'Semua';
+        const elDeadline = document.getElementById('filter-deadline');
+        if (elDeadline) elDeadline.value = 'Semua';
+        currentPage = 1;
+        renderTabel();
+      },
+      onHover: function(evt, elements) {
+        evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+      }
+    }
   });
 }
 
