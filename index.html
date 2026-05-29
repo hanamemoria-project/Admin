@@ -203,11 +203,11 @@
   <!-- DASHBOARD: Ringkasan & Grafik -->
   <div id="section-dashboard">
     <div class="stats-grid" id="stats-grid">
-      <div class="stat-card gold"><div class="emoji">⏳</div><div class="label">Belum Bayar</div><div class="value" id="c-pending">–</div></div>
-      <div class="stat-card sky"><div class="emoji">💳</div><div class="label">Sudah Bayar</div><div class="value" id="c-paid">–</div></div>
-      <div class="stat-card rose"><div class="emoji">⚙️</div><div class="label">Diproses</div><div class="value" id="c-proses">–</div></div>
-      <div class="stat-card sage"><div class="emoji">✨</div><div class="label">Selesai</div><div class="value" id="c-selesai">–</div></div>
-      <div class="stat-card danger"><div class="emoji">⚠️</div><div class="label">Belum MindAR</div><div class="value" id="c-mindar">–</div></div>
+      <div class="stat-card gold" onclick="bukaOrdersFilter('pending_payment','Semua',false)" style="cursor:pointer;" title="Lihat pesanan Belum Bayar"><div class="emoji">⏳</div><div class="label">Belum Bayar</div><div class="value" id="c-pending">–</div></div>
+      <div class="stat-card sky" onclick="bukaOrdersFilter('paid','Semua',false)" style="cursor:pointer;" title="Lihat pesanan Sudah Bayar"><div class="emoji">💳</div><div class="label">Sudah Bayar</div><div class="value" id="c-paid">–</div></div>
+      <div class="stat-card rose" onclick="bukaOrdersFilter('processing','Semua',false)" style="cursor:pointer;" title="Lihat pesanan Diproses"><div class="emoji">⚙️</div><div class="label">Diproses</div><div class="value" id="c-proses">–</div></div>
+      <div class="stat-card sage" onclick="bukaOrdersFilter('completed','Semua',false)" style="cursor:pointer;" title="Lihat pesanan Selesai"><div class="emoji">✨</div><div class="label">Selesai</div><div class="value" id="c-selesai">–</div></div>
+      <div class="stat-card danger" onclick="bukaOrdersFilter('Semua','Semua',true)" style="cursor:pointer;" title="Lihat pesanan Belum MindAR"><div class="emoji">⚠️</div><div class="label">Belum MindAR</div><div class="value" id="c-mindar">–</div></div>
     </div>
     <div class="dashboard-charts-grid">
       <div class="card">

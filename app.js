@@ -388,6 +388,8 @@ function renderTabel() {
       if (deadline === 'minggu_ini' && (p._sisaHari < 0 || p._sisaHari > 7)) return false;
       if (deadline === 'lebih'      && p._sisaHari <= 7) return false;
     }
+    // Filter Belum MindAR
+    if (window._filterMindar && !p._mindar) return false;
     return true;
   });
 
@@ -597,25 +599,27 @@ function buatDiagram(pending, paid, proses, selesai, mindar) {
 }
 
 /* ===== NAVIGATE TO ORDERS WITH FILTER ===== */
-function bukaOrdersFilter(status, deadline) {
-  // Switch to orders section
+function bukaOrdersFilter(status, deadline, mindarOnly) {
   const ordersBtn = document.querySelector('.bottom-nav-item:nth-child(2)') ||
                     document.querySelector('[onclick*="orders"]');
   showSection('orders', ordersBtn);
 
-  // Apply status filter
   const elStatus = document.getElementById('filter-status');
-  if (elStatus && status) elStatus.value = status;
+  if (elStatus) elStatus.value = status || 'Semua';
 
-  // Apply deadline filter
   const elDeadline = document.getElementById('filter-deadline');
   if (elDeadline) elDeadline.value = deadline || 'Semua';
 
-  // Reset other filters
   const elProduk = document.getElementById('filter-produk');
   if (elProduk) elProduk.value = 'Semua';
+
   const elSearch = document.getElementById('search-input');
   if (elSearch) elSearch.value = '';
+
+  // Set mindar filter flag
+  const elMindar = document.getElementById('filter-mindar');
+  if (elMindar) elMindar.value = mindarOnly ? 'ya' : 'Semua';
+  window._filterMindar = mindarOnly ? true : false;
 
   currentPage = 1;
   renderTabel();
