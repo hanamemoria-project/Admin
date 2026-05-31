@@ -2030,3 +2030,22 @@ input[type=checkbox] {
   0%, 100% { box-shadow: 0 0 0 0 rgba(92,184,92,.45); }
   50%       { box-shadow: 0 0 0 5px rgba(92,184,92,0); }
 }
+
+/* ===== Animasi Bell Notifikasi ===== */
+@keyframes bell-ring {
+  0%   { transform: rotate(0deg); }
+  10%  { transform: rotate(15deg); }
+  20%  { transform: rotate(-12deg); }
+  30%  { transform: rotate(10deg); }
+  40%  { transform: rotate(-8deg); }
+  50%  { transform: rotate(6deg); }
+  60%  { transform: rotate(-4deg); }
+  70%  { transform: rotate(2deg); }
+  80%  { transform: rotate(0deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.notif-bell.notif-ring {
+  animation: bell-ring 0.6s ease-in-out;
+  transform-origin: top center;
+}

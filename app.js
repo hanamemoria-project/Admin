@@ -95,7 +95,7 @@ async function muatDashboard() {
   }
   // Aktifkan realtime setelah data awal dimuat
   setupRealtimeSubscription();
-  requestNotifPermission();
+  await requestNotifPermission();
   try { if (typeof window.__hideInstantLoading === 'function') window.__hideInstantLoading(); } catch(e) {}
   try { hideLoading(); } catch(e) {}
 }
@@ -227,14 +227,43 @@ function addNotifikasi(pesanan) {
   renderNotifDropdown();
   updateNotifBadge();
 
+  // Coba browser Notification API
   if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification('🌸 Hana Memoria – Pesanan Baru!', {
-      body: `#${pesanan.id_pesanan} · ${pesanan.nama_pelanggan || ''} · ${pesanan.jenis_pesanan || ''}`,
-      icon: LOGO_URL,
-      badge: LOGO_URL,
-      tag: pesanan.id_pesanan
+    try {
+      new Notification('🌸 Hana Memoria – Pesanan Baru!', {
+        body: `#${pesanan.id_pesanan} · ${pesanan.nama_pelanggan || ''} · ${pesanan.jenis_pesanan || ''}`,
+        icon: LOGO_URL,
+        badge: LOGO_URL,
+        tag: pesanan.id_pesanan
+      });
+    } catch(e) {
+      console.warn('Browser Notification gagal:', e);
+    }
+  } else if ('Notification' in window && Notification.permission === 'default') {
+    // Izin belum diberikan — minta sekarang lalu tampilkan notif
+    Notification.requestPermission().then(perm => {
+      if (perm === 'granted') {
+        try {
+          new Notification('🌸 Hana Memoria – Pesanan Baru!', {
+            body: `#${pesanan.id_pesanan} · ${pesanan.nama_pelanggan || ''} · ${pesanan.jenis_pesanan || ''}`,
+            icon: LOGO_URL,
+            badge: LOGO_URL,
+            tag: pesanan.id_pesanan
+          });
+        } catch(e) {}
+      }
     });
   }
+
+  // Animasi bell agar terlihat walau notif browser diblokir
+  const bell = document.getElementById('notif-bell');
+  if (bell) {
+    bell.classList.remove('notif-ring');
+    void bell.offsetWidth; // reflow untuk restart animasi
+    bell.classList.add('notif-ring');
+    setTimeout(() => bell.classList.remove('notif-ring'), 1200);
+  }
+
   document.getElementById('sidebar-notif-dot').classList.add('show');
 }
 
@@ -281,10 +310,38 @@ document.addEventListener('click', e => {
   if (!e.target.closest('.notif-bell-wrap')) tutupNotifDropdown();
 });
 
-function requestNotifPermission() {
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
+async function requestNotifPermission() {
+  if (!('Notification' in window)) return;
+
+  if (Notification.permission === 'default') {
+    const result = await Notification.requestPermission();
+    if (result === 'granted') {
+      showToast('🔔 Notifikasi diaktifkan! Anda akan mendapat pemberitahuan pesanan baru.', 'success');
+    } else if (result === 'denied') {
+      showToast('⚠️ Notifikasi diblokir. Aktifkan di pengaturan browser untuk menerima alert pesanan baru.', 'error');
+    }
+  } else if (Notification.permission === 'denied') {
+    // Tampilkan banner permanen jika sudah diblokir
+    showNotifBlockedBanner();
   }
+}
+
+function showNotifBlockedBanner() {
+  if (document.getElementById('notif-blocked-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'notif-blocked-banner';
+  banner.style.cssText = `
+    position:fixed; top:0; left:0; right:0; z-index:9999;
+    background:#c0392b; color:#fff; text-align:center;
+    padding:10px 16px; font-size:13px; display:flex;
+    align-items:center; justify-content:center; gap:12px;
+  `;
+  banner.innerHTML = `
+    <span>⚠️ Notifikasi browser diblokir — pesanan baru tidak akan muncul sebagai pop-up.</span>
+    <a href="javascript:void(0)" onclick="document.getElementById('notif-blocked-banner').remove()"
+       style="color:#fff;font-weight:bold;text-decoration:underline;">Tutup</a>
+  `;
+  document.body.prepend(banner);
 }
 
 /* ===== DATA ===== */
