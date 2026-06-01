@@ -227,30 +227,21 @@ function addNotifikasi(pesanan) {
   renderNotifDropdown();
   updateNotifBadge();
 
-  // Coba browser Notification API
+  // Kirim notifikasi via Service Worker (bekerja di Android PWA)
   if ('Notification' in window && Notification.permission === 'granted') {
-    try {
-      new Notification('🌸 Hana Memoria – Pesanan Baru!', {
-        body: `#${pesanan.id_pesanan} · ${pesanan.nama_pelanggan || ''} · ${pesanan.jenis_pesanan || ''}`,
-        icon: LOGO_URL,
-        badge: LOGO_URL,
-        tag: pesanan.id_pesanan
-      });
-    } catch(e) {
-      console.warn('Browser Notification gagal:', e);
-    }
+    kirimNotifViaSW(
+      '🌸 Hana Memoria – Pesanan Baru!',
+      `#${pesanan.id_pesanan} · ${pesanan.nama_pelanggan || ''} · ${pesanan.jenis_pesanan || ''}`,
+      String(pesanan.id_pesanan)
+    );
   } else if ('Notification' in window && Notification.permission === 'default') {
-    // Izin belum diberikan — minta sekarang lalu tampilkan notif
     Notification.requestPermission().then(perm => {
       if (perm === 'granted') {
-        try {
-          new Notification('🌸 Hana Memoria – Pesanan Baru!', {
-            body: `#${pesanan.id_pesanan} · ${pesanan.nama_pelanggan || ''} · ${pesanan.jenis_pesanan || ''}`,
-            icon: LOGO_URL,
-            badge: LOGO_URL,
-            tag: pesanan.id_pesanan
-          });
-        } catch(e) {}
+        kirimNotifViaSW(
+          '🌸 Hana Memoria – Pesanan Baru!',
+          `#${pesanan.id_pesanan} · ${pesanan.nama_pelanggan || ''} · ${pesanan.jenis_pesanan || ''}`,
+          String(pesanan.id_pesanan)
+        );
       }
     });
   }
@@ -316,14 +307,29 @@ async function requestNotifPermission() {
   if (Notification.permission === 'default') {
     const result = await Notification.requestPermission();
     if (result === 'granted') {
-      showToast('🔔 Notifikasi diaktifkan! Anda akan mendapat pemberitahuan pesanan baru.', 'success');
+      showToast('🔔 Notifikasi diaktifkan!', 'success');
     } else if (result === 'denied') {
-      showToast('⚠️ Notifikasi diblokir. Aktifkan di pengaturan browser untuk menerima alert pesanan baru.', 'error');
+      showNotifBlockedBanner();
     }
   } else if (Notification.permission === 'denied') {
-    // Tampilkan banner permanen jika sudah diblokir
     showNotifBlockedBanner();
   }
+}
+
+/* Kirim notifikasi melalui Service Worker agar berfungsi di Android PWA */
+async function kirimNotifViaSW(title, body, tag) {
+  try {
+    // Gunakan SW registration jika tersedia (cara terbaik di Android)
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      if (reg && reg.active) {
+        reg.active.postMessage({ type: 'SHOW_NOTIFICATION', title, body, tag });
+        return;
+      }
+    }
+  } catch(e) {}
+  // Fallback: new Notification langsung (desktop / non-PWA)
+  try { new Notification(title, { body, icon: LOGO_URL, badge: LOGO_URL, tag }); } catch(e) {}
 }
 
 function showNotifBlockedBanner() {
@@ -380,8 +386,12 @@ async function refreshData() {
 }
 
 /* ===== SUPABASE REALTIME ===== */
+let realtimeStatus = 'disconnected'; // 'connected' | 'connecting' | 'disconnected'
+let pollingInterval = null;
+let reconnectTimeout = null;
+
 function setupRealtimeSubscription() {
-  // Bersihkan channel lama jika ada
+  // Bersihkan channel lama
   if (realtimeChannel) {
     supabaseClient.removeChannel(realtimeChannel);
     realtimeChannel = null;
@@ -394,17 +404,10 @@ function setupRealtimeSubscription() {
       { event: 'INSERT', schema: 'public', table: 'Pesanan' },
       (payload) => {
         const pesananBaru = payload.new;
-        // Cegah duplikasi jika sudah ada di data lokal
         if (lastKnownIds.has(pesananBaru.id_pesanan)) return;
-
-        // Tambahkan ke state lokal
         dataPesanan.unshift(pesananBaru);
         lastKnownIds.add(pesananBaru.id_pesanan);
-
-        // Tampilkan notifikasi
         addNotifikasi(pesananBaru);
-
-        // Re-render tabel & dashboard
         renderTabel();
         updateTopbarSub();
         showToast(`📦 Pesanan baru: #${pesananBaru.id_pesanan}`, 'success');
@@ -416,10 +419,7 @@ function setupRealtimeSubscription() {
       (payload) => {
         const updated = payload.new;
         const idx = dataPesanan.findIndex(x => x.id_pesanan === updated.id_pesanan);
-        if (idx !== -1) {
-          dataPesanan[idx] = updated;
-          renderTabel();
-        }
+        if (idx !== -1) { dataPesanan[idx] = updated; renderTabel(); }
       }
     )
     .on(
@@ -435,16 +435,71 @@ function setupRealtimeSubscription() {
     )
     .subscribe((status) => {
       const dot = document.getElementById('realtime-dot');
+      realtimeStatus = status;
+
       if (status === 'SUBSCRIBED') {
         if (dot) { dot.className = 'realtime-dot connected'; dot.title = 'Realtime: Terhubung'; }
+        hentikanPolling(); // realtime aktif, polling tidak perlu
+        clearTimeout(reconnectTimeout);
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        if (dot) { dot.className = 'realtime-dot error'; dot.title = 'Realtime: Terputus — klik Refresh'; }
-        showToast('⚠️ Koneksi realtime terputus', 'error');
+        if (dot) { dot.className = 'realtime-dot error'; dot.title = 'Realtime: Terputus – polling aktif'; }
+        mulaiPollingFallback();
+        // Auto-reconnect 10 detik lagi
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = setTimeout(() => setupRealtimeSubscription(), 10000);
       } else {
         if (dot) { dot.className = 'realtime-dot connecting'; dot.title = 'Realtime: Menghubungkan...'; }
       }
     });
 }
+
+/* Polling fallback 15 detik saat realtime mati */
+function mulaiPollingFallback() {
+  if (pollingInterval) return;
+  pollingInterval = setInterval(async () => {
+    if (realtimeStatus === 'SUBSCRIBED') { hentikanPolling(); return; }
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/Pesanan?order=created_at.desc&limit=20`, {
+        headers: await getAuthHeaders()
+      });
+      if (!r.ok) return;
+      const fresh = await r.json();
+      let ada_baru = false;
+      fresh.forEach(p => {
+        if (!lastKnownIds.has(p.id_pesanan)) {
+          dataPesanan.unshift(p);
+          lastKnownIds.add(p.id_pesanan);
+          addNotifikasi(p);
+          ada_baru = true;
+        }
+      });
+      if (ada_baru) { renderTabel(); updateTopbarSub(); }
+    } catch(e) {}
+  }, 15000);
+}
+
+function hentikanPolling() {
+  if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
+}
+
+/* Reconnect saat tab aktif kembali (setelah layar mati / background) */
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    // Cek apakah realtime masih hidup
+    if (realtimeStatus !== 'SUBSCRIBED') {
+      setupRealtimeSubscription();
+    }
+    // Ambil data terbaru sekaligus tangkap pesanan yang masuk saat app di background
+    ambilDataPesanan(true);
+  }
+});
+
+/* Reconnect saat koneksi internet kembali */
+window.addEventListener('online', () => {
+  showToast('🌐 Koneksi kembali – menyambungkan realtime...', 'success');
+  setupRealtimeSubscription();
+  ambilDataPesanan(true);
+});
 
 
 function updateTopbarSub() {
