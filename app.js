@@ -318,26 +318,33 @@ async function requestNotifPermission() {
 
 /* Kirim notifikasi melalui Service Worker — cara yang benar untuk Android PWA */
 async function kirimNotifViaSW(title, body, tag) {
-  // Cara 1: reg.showNotification() — PALING RELIABLE di Android PWA
-  if ('serviceWorker' in navigator) {
+  const opts = {
+    body,
+    icon: LOGO_URL,
+    badge: LOGO_URL,
+    tag: String(tag),
+    renotify: true,
+    vibrate: [200, 100, 200]
+  };
+
+  // Cara 1: reg.showNotification() via SW — berfungsi di Android PWA
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
     try {
-      const reg = await navigator.serviceWorker.ready;
-      await reg.showNotification(title, {
-        body,
-        icon: LOGO_URL,
-        badge: LOGO_URL,
-        tag: String(tag),
-        renotify: true,
-        vibrate: [200, 100, 200]
-      });
-      return; // sukses, stop di sini
+      // Ambil registrasi yang sudah ada (tidak perlu menunggu .ready yang bisa menggantung)
+      const reg = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('SW timeout')), 3000))
+      ]);
+      await reg.showNotification(title, opts);
+      return;
     } catch(e) {
-      console.warn('[SW Notif] reg.showNotification gagal:', e);
+      console.warn('[SW Notif] showNotification via SW gagal, fallback ke new Notification:', e);
     }
   }
-  // Cara 2: new Notification() — fallback untuk desktop/non-PWA
+
+  // Cara 2: new Notification() — fallback desktop / saat SW belum aktif
   try {
-    new Notification(title, { body, icon: LOGO_URL, badge: LOGO_URL, tag: String(tag) });
+    new Notification(title, opts);
   } catch(e) {
     console.warn('[Notif] new Notification gagal:', e);
   }
@@ -1617,6 +1624,15 @@ function dismissInstall() {
 
 // ===== INISIALISASI DATA AWAL =====
 window.onload = async () => {
+  // Daftarkan Service Worker lebih dulu
+  if ('serviceWorker' in navigator) {
+    try {
+      await navigator.serviceWorker.register('./sw.js');
+    } catch(e) {
+      console.warn('[SW] Registrasi gagal:', e);
+    }
+  }
+
   const sudahLogin = await cekLogin();
   if (!sudahLogin) {
     if (typeof window.__hideInstantLoading === 'function') window.__hideInstantLoading();
