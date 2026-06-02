@@ -292,24 +292,58 @@ document.addEventListener('click', e => {
 });
 
 async function requestNotifPermission() {
-  // Di Android PWA, Notification API kadang tidak tersedia —
-  // tapi reg.showNotification() tetap bisa bekerja via SW.
-  // Jangan blokir/banner hanya karena Notification API tidak ada.
   if (!('Notification' in window)) return;
 
-  if (Notification.permission === 'default') {
-    const result = await Notification.requestPermission();
-    if (result === 'granted') {
-      showToast('🔔 Notifikasi diaktifkan!', 'success');
-    }
-    // Jika 'denied': diam saja, SW masih bisa kirim notif via reg.showNotification()
+  if (Notification.permission === 'granted') {
+    sembunyikanTombolNotif();
+    return;
   }
-  // HAPUS: jangan tampilkan banner untuk status 'denied' —
-  // Android PWA bisa salah baca status ini meski izin sudah ON di settings
+
+  // Tampilkan tombol — Chrome hanya izinkan requestPermission dari aksi user langsung (tap/klik)
+  tampilkanTombolNotif();
 }
+
+function tampilkanTombolNotif() {
+  const btn = document.getElementById('btn-aktifkan-notif');
+  if (btn) btn.style.display = 'inline-block';
+}
+
+function sembunyikanTombolNotif() {
+  const btn = document.getElementById('btn-aktifkan-notif');
+  if (btn) btn.style.display = 'none';
+}
+
+/* Dipanggil saat user TAP tombol "Aktifkan" — ini user gesture yang valid */
+window.aktifkanNotifikasi = async function() {
+  if (!('Notification' in window)) {
+    showToast('Browser tidak mendukung notifikasi', 'error');
+    return;
+  }
+  const result = await Notification.requestPermission();
+  if (result === 'granted') {
+    sembunyikanTombolNotif();
+    showToast('🔔 Notifikasi diaktifkan!', 'success');
+    // Langsung test agar user tahu berhasil
+    await kirimNotifViaSW('🌸 Hana Memoria', 'Notifikasi pesanan baru siap! ✅', 'aktivasi');
+  } else if (result === 'denied') {
+    showToast('⚠️ Diblokir. Buka Setelan situs → Notifikasi → Izinkan, lalu refresh.', 'error');
+  }
+};
 
 /* Kirim notifikasi melalui Service Worker — cara yang benar untuk Android PWA */
 async function kirimNotifViaSW(title, body, tag) {
+  // Pastikan izin sudah granted — minta jika belum
+  if (!('Notification' in window)) return;
+
+  let permission = Notification.permission;
+  if (permission === 'default') {
+    permission = await Notification.requestPermission();
+  }
+  if (permission !== 'granted') {
+    console.warn('[Notif] Izin belum diberikan:', permission);
+    return;
+  }
+
   const opts = {
     body,
     icon: LOGO_URL,
@@ -320,7 +354,6 @@ async function kirimNotifViaSW(title, body, tag) {
   };
 
   // Cara 1: reg.showNotification() via SW — bekerja di Android PWA
-  // tidak perlu cek .controller karena kita sudah register SW di onload
   if ('serviceWorker' in navigator) {
     try {
       const reg = await Promise.race([
@@ -328,9 +361,9 @@ async function kirimNotifViaSW(title, body, tag) {
         new Promise((_, reject) => setTimeout(() => reject(new Error('SW timeout')), 3000))
       ]);
       await reg.showNotification(title, opts);
-      return; // sukses
+      return;
     } catch(e) {
-      console.warn('[SW Notif] gagal, coba new Notification:', e);
+      console.warn('[SW Notif] gagal, fallback ke new Notification:', e);
     }
   }
 
