@@ -1,4 +1,4 @@
-const CACHE = 'hana-memoria-v3';
+const CACHE = 'hana-memoria-v4';
 const LOGO = 'https://pub-02d853231cff4efa92ee6754c646a898.r2.dev/Logo_HM.png';
 
 self.addEventListener('install', e => {
@@ -21,7 +21,7 @@ self.addEventListener('fetch', e => {
   );
 });
 
-/* ===== Push Notification dari server ===== */
+/* Push dari server */
 self.addEventListener('push', e => {
   const data = e.data ? e.data.json() : { title: 'Hana Memoria', body: 'Ada pesanan baru!' };
   e.waitUntil(self.registration.showNotification(data.title, {
@@ -32,24 +32,7 @@ self.addEventListener('push', e => {
   }));
 });
 
-/* ===== Notifikasi dari halaman (postMessage) ===== */
-self.addEventListener('message', e => {
-  if (e.data && e.data.type === 'SHOW_NOTIFICATION') {
-    const { title, body, tag } = e.data;
-    e.waitUntil(
-      self.registration.showNotification(title, {
-        body: body,
-        icon: LOGO,
-        badge: LOGO,
-        tag: tag || 'hana-notif',
-        vibrate: [200, 100, 200],
-        renotify: true
-      })
-    );
-  }
-});
-
-/* ===== Klik notifikasi → buka / fokus tab ===== */
+/* Klik notifikasi → buka / fokus tab */
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   e.waitUntil(

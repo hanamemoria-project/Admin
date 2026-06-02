@@ -316,20 +316,31 @@ async function requestNotifPermission() {
   }
 }
 
-/* Kirim notifikasi melalui Service Worker agar berfungsi di Android PWA */
+/* Kirim notifikasi melalui Service Worker — cara yang benar untuk Android PWA */
 async function kirimNotifViaSW(title, body, tag) {
-  try {
-    // Gunakan SW registration jika tersedia (cara terbaik di Android)
-    if ('serviceWorker' in navigator) {
+  // Cara 1: reg.showNotification() — PALING RELIABLE di Android PWA
+  if ('serviceWorker' in navigator) {
+    try {
       const reg = await navigator.serviceWorker.ready;
-      if (reg && reg.active) {
-        reg.active.postMessage({ type: 'SHOW_NOTIFICATION', title, body, tag });
-        return;
-      }
+      await reg.showNotification(title, {
+        body,
+        icon: LOGO_URL,
+        badge: LOGO_URL,
+        tag: String(tag),
+        renotify: true,
+        vibrate: [200, 100, 200]
+      });
+      return; // sukses, stop di sini
+    } catch(e) {
+      console.warn('[SW Notif] reg.showNotification gagal:', e);
     }
-  } catch(e) {}
-  // Fallback: new Notification langsung (desktop / non-PWA)
-  try { new Notification(title, { body, icon: LOGO_URL, badge: LOGO_URL, tag }); } catch(e) {}
+  }
+  // Cara 2: new Notification() — fallback untuk desktop/non-PWA
+  try {
+    new Notification(title, { body, icon: LOGO_URL, badge: LOGO_URL, tag: String(tag) });
+  } catch(e) {
+    console.warn('[Notif] new Notification gagal:', e);
+  }
 }
 
 function showNotifBlockedBanner() {
@@ -500,6 +511,23 @@ window.addEventListener('online', () => {
   setupRealtimeSubscription();
   ambilDataPesanan(true);
 });
+
+/* ===== TEST NOTIFIKASI (bisa dipanggil dari console: testNotif()) ===== */
+window.testNotif = async function() {
+  if (!('Notification' in window)) {
+    alert('Browser tidak support notifikasi'); return;
+  }
+  if (Notification.permission !== 'granted') {
+    const p = await Notification.requestPermission();
+    if (p !== 'granted') { alert('Izin notifikasi ditolak'); return; }
+  }
+  await kirimNotifViaSW(
+    '🌸 TEST – Hana Memoria',
+    'Notifikasi berfungsi dengan baik! ✅',
+    'test-' + Date.now()
+  );
+  showToast('🔔 Test notifikasi dikirim', 'success');
+};
 
 
 function updateTopbarSub() {
