@@ -227,24 +227,14 @@ function addNotifikasi(pesanan) {
   renderNotifDropdown();
   updateNotifBadge();
 
-  // Kirim notifikasi via Service Worker (bekerja di Android PWA)
-  if ('Notification' in window && Notification.permission === 'granted') {
-    kirimNotifViaSW(
-      '🌸 Hana Memoria – Pesanan Baru!',
-      `#${pesanan.id_pesanan} · ${pesanan.nama_pelanggan || ''} · ${pesanan.jenis_pesanan || ''}`,
-      String(pesanan.id_pesanan)
-    );
-  } else if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission().then(perm => {
-      if (perm === 'granted') {
-        kirimNotifViaSW(
-          '🌸 Hana Memoria – Pesanan Baru!',
-          `#${pesanan.id_pesanan} · ${pesanan.nama_pelanggan || ''} · ${pesanan.jenis_pesanan || ''}`,
-          String(pesanan.id_pesanan)
-        );
-      }
-    });
-  }
+  // Kirim notifikasi — langsung via SW tanpa cek Notification.permission
+  // karena di Android PWA, reg.showNotification() bisa jalan meski
+  // Notification.permission terbaca 'denied' atau API tidak tersedia
+  kirimNotifViaSW(
+    '🌸 Hana Memoria – Pesanan Baru!',
+    `#${pesanan.id_pesanan} · ${pesanan.nama_pelanggan || ''} · ${pesanan.jenis_pesanan || ''}`,
+    String(pesanan.id_pesanan)
+  );
 
   // Animasi bell agar terlihat walau notif browser diblokir
   const bell = document.getElementById('notif-bell');
@@ -302,18 +292,20 @@ document.addEventListener('click', e => {
 });
 
 async function requestNotifPermission() {
+  // Di Android PWA, Notification API kadang tidak tersedia —
+  // tapi reg.showNotification() tetap bisa bekerja via SW.
+  // Jangan blokir/banner hanya karena Notification API tidak ada.
   if (!('Notification' in window)) return;
 
   if (Notification.permission === 'default') {
     const result = await Notification.requestPermission();
     if (result === 'granted') {
       showToast('🔔 Notifikasi diaktifkan!', 'success');
-    } else if (result === 'denied') {
-      showNotifBlockedBanner();
     }
-  } else if (Notification.permission === 'denied') {
-    showNotifBlockedBanner();
+    // Jika 'denied': diam saja, SW masih bisa kirim notif via reg.showNotification()
   }
+  // HAPUS: jangan tampilkan banner untuk status 'denied' —
+  // Android PWA bisa salah baca status ini meski izin sudah ON di settings
 }
 
 /* Kirim notifikasi melalui Service Worker — cara yang benar untuk Android PWA */
@@ -327,22 +319,22 @@ async function kirimNotifViaSW(title, body, tag) {
     vibrate: [200, 100, 200]
   };
 
-  // Cara 1: reg.showNotification() via SW — berfungsi di Android PWA
-  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+  // Cara 1: reg.showNotification() via SW — bekerja di Android PWA
+  // tidak perlu cek .controller karena kita sudah register SW di onload
+  if ('serviceWorker' in navigator) {
     try {
-      // Ambil registrasi yang sudah ada (tidak perlu menunggu .ready yang bisa menggantung)
       const reg = await Promise.race([
         navigator.serviceWorker.ready,
         new Promise((_, reject) => setTimeout(() => reject(new Error('SW timeout')), 3000))
       ]);
       await reg.showNotification(title, opts);
-      return;
+      return; // sukses
     } catch(e) {
-      console.warn('[SW Notif] showNotification via SW gagal, fallback ke new Notification:', e);
+      console.warn('[SW Notif] gagal, coba new Notification:', e);
     }
   }
 
-  // Cara 2: new Notification() — fallback desktop / saat SW belum aktif
+  // Cara 2: new Notification() — fallback desktop
   try {
     new Notification(title, opts);
   } catch(e) {
@@ -524,9 +516,9 @@ window.testNotif = async function() {
   if (!('Notification' in window)) {
     alert('Browser tidak support notifikasi'); return;
   }
-  if (Notification.permission !== 'granted') {
-    const p = await Notification.requestPermission();
-    if (p !== 'granted') { alert('Izin notifikasi ditolak'); return; }
+  // Coba request permission jika belum, tapi tetap lanjut kirim via SW
+  if ('Notification' in window && Notification.permission === 'default') {
+    await Notification.requestPermission();
   }
   await kirimNotifViaSW(
     '🌸 TEST – Hana Memoria',
