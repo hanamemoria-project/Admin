@@ -295,12 +295,10 @@ async function requestNotifPermission() {
   if (!('Notification' in window)) return;
 
   if (Notification.permission === 'granted') {
+    // Sudah OK — sembunyikan tombol
     sembunyikanTombolNotif();
-    return;
   }
-
-  // Tampilkan tombol — Chrome hanya izinkan requestPermission dari aksi user langsung (tap/klik)
-  tampilkanTombolNotif();
+  // Jika 'default' atau 'denied': tombol tetap visible (sudah visible by default di HTML)
 }
 
 function tampilkanTombolNotif() {
